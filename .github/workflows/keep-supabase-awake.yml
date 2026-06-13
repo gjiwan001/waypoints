@@ -1,0 +1,19 @@
+name: Keep Supabase Awake
+
+# Runs every 3 days to prevent the free-tier Supabase project
+# (Waypoints / korea_recs) from auto-pausing after 7 days of inactivity.
+
+on:
+  schedule:
+    - cron: '0 12 */3 * *'   # every 3 days at 12:00 UTC
+  workflow_dispatch:          # allows manual trigger from the Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl -sS -o /dev/null -w "HTTP %{http_code}\n" \
+            "https://zlahhruecdfpioewbpaq.supabase.co/rest/v1/korea_recs?select=id&limit=1" \
+            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}"
