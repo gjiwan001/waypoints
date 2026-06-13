@@ -1132,6 +1132,10 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     if (zonesVisible) zoneCircles.forEach(c => c.addTo(map));
   }
 
+  // Escapes user-supplied strings before insertion into innerHTML
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+  function safeHref(url) { return url && /^https?:\/\//i.test(url) ? esc(url) : null; }
+
   // State
   let activeFilters = new Set(Object.keys(CC));
   window._activeFilters = activeFilters;
@@ -1212,7 +1216,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     document.getElementById('icat').style.color = cfg.color;
     document.getElementById('iname').textContent = p.n;
     document.getElementById('idesc').textContent = p.d;
-    document.getElementById('itags').innerHTML = p.tags.map(t => '<span class="itag">' + t + '</span>').join('');
+    document.getElementById('itags').innerHTML = p.tags.map(t => '<span class="itag">' + esc(t) + '</span>').join('');
     const dayEl = document.getElementById('iday');
     if (p.day) { dayEl.textContent = '📅 ' + p.day; dayEl.style.display = 'block'; }
     else { dayEl.style.display = 'none'; }
@@ -1237,7 +1241,8 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     }
     if (p.isCommunity) {
       contribEl.style.display = 'flex';
-      contribEl.innerHTML = '✨ Added by ' + p.contributor + (p.source_url ? ' · <a href="' + p.source_url + '" target="_blank" style="color:inherit">source</a>' : '');
+      const _su = safeHref(p.source_url);
+      contribEl.innerHTML = '✨ Added by ' + esc(p.contributor) + (_su ? ' · <a href="' + _su + '" target="_blank" rel="noopener noreferrer" style="color:inherit">source</a>' : '');
     } else {
       contribEl.style.display = 'none';
     }
@@ -1328,8 +1333,8 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
       div.className = 'pi';
       div.setAttribute('data-i', i);
       div.innerHTML = '<div class="pd" style="background:' + cfg.color + (p.isCommunity ? ';outline:1.5px dashed #b8974a;outline-offset:1px' : '') + '"></div>' +
-        '<div style="min-width:0"><div class="pn">' + p.n + (inRoute ? '<span class="rb">✓</span>' : '') + (p.isCommunity ? '<span class="rb" style="background:rgba(184,151,74,.12);color:#b8974a;border-color:rgba(184,151,74,.25)">✨ ' + p.contributor + '</span>' : '') + '</div>' +
-        '<div class="pm">' + p.area + ' · ' + p.c + '</div></div>';
+        '<div style="min-width:0"><div class="pn">' + esc(p.n) + (inRoute ? '<span class="rb">✓</span>' : '') + (p.isCommunity ? '<span class="rb" style="background:rgba(184,151,74,.12);color:#b8974a;border-color:rgba(184,151,74,.25)">✨ ' + esc(p.contributor) + '</span>' : '') + '</div>' +
+        '<div class="pm">' + esc(p.area) + ' · ' + esc(p.c) + '</div></div>';
       div.onclick = () => {
         map.flyTo([p.lat, p.lng], 15, { duration: 0.8 });
         setTimeout(() => { const m = markers.find(m => m._i === i); if (m) selectM(m); openInfo(p, i); }, 600);
