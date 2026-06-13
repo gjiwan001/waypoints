@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Waypoints</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:"DM Sans",sans-serif;font-size:13px;background:#faf6f0;color:#5a4e47;}
+
+/* ── VARIABLES ── */
+:root{
+  --bg:    #faf6f0;
+  --bg2:   #f3ede3;
+  --bg3:   #ece4d6;
+  --bg4:   #e0d4c4;
+  --line:  #ddd0bc;
+  --muted: #b0a59c;
+  --mid:   #8a7c74;
+  --text:  #5a4e47;
+  --hi:    #2d2520;
+  --acc:   #c8724a;
+  --acc2:  #a85c38;
+  --gold:  #b8974a;
+  --blue:  #4a7a9a;
+  --green: #5a8a6a;
+  --purp:  #7a6aaa;
+  --pink:  #a86a88;
+  --r:6px;
+}
+
+/* ── LAYOUT ── */
+#app{display:flex;flex-direction:column;width:100vw;height:100vh;}
+#hdr{height:48px;min-height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;}
+#body{display:flex;flex:1;min-height:0;overflow:hidden;}
+#sb{width:224px;min-width:224px;background:var(--bg2);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow:hidden;}
+#mapwrap{flex:1;position:relative;overflow:hidden;min-height:0;}
+#map{position:absolute;inset:0;}
+
+/* ── HEADER ── */
+.htitle{font-family:"DM Serif Display",serif;font-size:16px;color:var(--hi);display:flex;align-items:center;gap:9px;}
+.htitle em{font-style:italic;color:var(--acc);}
+
+/* ── COUNTRY SELECTOR ── */
+#country-sel{position:relative;}
+#country-btn{
+  display:flex;align-items:center;gap:6px;
+  background:var(--bg3);border:1px solid var(--line);border-radius:20px;
+  padding:4px 10px;font-family:"DM Sans",sans-serif;font-size:12px;color:var(--hi);
+  cursor:pointer;transition:all .12s;
+}
+#country-btn:hover{border-color:var(--muted);}
+#country-btn .cv{font-size:8px;color:var(--muted);margin-left:2px;}
+#country-menu{
+  position:absolute;top:calc(100% + 6px);left:0;
+  background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 8px 24px rgba(0,0,0,.45);
+  min-width:150px;z-index:1500;display:none;overflow:hidden;
+}
+#country-menu.vis{display:block;}
+.cm-item{
+  display:flex;align-items:center;gap:9px;
+  padding:9px 14px;font-size:13px;color:var(--text);cursor:pointer;
+  transition:background .1s;font-family:"DM Sans",sans-serif;
+}
+.cm-item:hover{background:var(--bg3);}
+.cm-item.active{color:var(--acc);}
+.cm-item span{font-size:15px;}
+
+@media (max-width: 768px){
+  #country-btn{font-size:11px;padding:3px 8px;}
+  #country-menu{min-width:130px;}
+  .cm-item{padding:8px 12px;font-size:12px;}
+}
+.hpill{background:var(--bg3);color:var(--mid);border:1px solid var(--line);font-family:"DM Mono",monospace;font-size:9px;padding:2px 8px;border-radius:20px;}
+.hright{display:flex;align-items:center;gap:8px;}
+#hcount{font-family:"DM Mono",monospace;font-size:9px;color:var(--muted);}
+#theme-btn{background:var(--bg3);border:1px solid var(--line);border-radius:20px;padding:3px 10px;font-family:"DM Mono",monospace;font-size:9px;color:var(--mid);cursor:pointer;transition:all .12s;}
+#theme-btn:hover{color:var(--hi);border-color:var(--muted);}
+#suggest-btn{background:var(--acc2);border:1px solid var(--acc);border-radius:20px;padding:3px 12px;font-family:"DM Mono",monospace;font-size:9px;color:var(--hi);cursor:pointer;transition:all .12s;}
+#suggest-btn:hover{background:var(--acc);}
+
+/* ── SUGGEST MODAL ── */
+#modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:none;align-items:center;justify-content:center;}
+#modal-overlay.vis{display:flex;}
+#modal{background:var(--bg2);border:1px solid var(--line);border-radius:10px;width:380px;max-width:92vw;max-height:88vh;overflow-y:auto;padding:20px 22px;}
+#modal::-webkit-scrollbar{width:4px;}
+#modal::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+#modal h2{font-family:"DM Serif Display",serif;font-size:18px;color:var(--hi);margin-bottom:4px;}
+#modal .modal-sub{font-size:11px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
+.mfield{margin-bottom:12px;}
+.mfield label{display:block;font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.mfield input,.mfield select,.mfield textarea{
+  width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);
+  color:var(--hi);font-family:"DM Sans",sans-serif;font-size:12px;padding:8px 10px;outline:none;
+  resize:vertical;
+}
+.mfield input:focus,.mfield select:focus,.mfield textarea:focus{border-color:var(--acc);}
+.mfield textarea{min-height:60px;font-family:"DM Sans",sans-serif;}
+.mfield select{appearance:none;cursor:pointer;}
+.mrow{display:flex;gap:8px;}
+.mrow .mfield{flex:1;}
+
+/* ── LOCATION SEARCH (Nominatim) ── */
+.loc-search{display:flex;gap:6px;margin-bottom:6px;}
+.loc-search input{flex:1;}
+#locsearch-btn{
+  background:var(--bg4);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 12px;cursor:pointer;font-size:13px;color:var(--hi);flex-shrink:0;
+  transition:background .12s;
+}
+#locsearch-btn:hover{background:var(--acc2);}
+#locsearch-btn:disabled{opacity:.5;cursor:default;}
+#loc-results{margin-bottom:6px;}
+.loc-result{
+  background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);
+  padding:8px 10px;font-size:11px;color:var(--text);cursor:pointer;
+  margin-bottom:4px;transition:all .12s;line-height:1.4;
+}
+.loc-result:hover{border-color:var(--acc);color:var(--hi);}
+.loc-result .lr-name{font-weight:500;color:var(--hi);}
+.loc-result .lr-type{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:6px;}
+.loc-credit{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);text-align:right;margin-top:4px;}
+
+#pin-status{
+  background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);
+  padding:10px;font-size:11px;color:var(--mid);margin-bottom:4px;
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+}
+#pin-status.set{border-color:var(--green);color:var(--text);}
+#pin-btn{
+  font-family:"DM Mono",monospace;font-size:9px;padding:5px 10px;border-radius:20px;
+  border:1px solid var(--line);background:var(--bg4);color:var(--hi);cursor:pointer;flex-shrink:0;
+}
+#pin-btn.active{background:var(--acc2);border-color:var(--acc);color:var(--hi);}
+#modal-actions{display:flex;gap:8px;margin-top:16px;}
+#modal-actions button{
+  flex:1;font-family:"DM Mono",monospace;font-size:11px;padding:9px;border-radius:var(--r);
+  border:none;cursor:pointer;transition:all .12s;
+}
+#submit-rec{background:var(--acc2);color:var(--hi);}
+#submit-rec:hover{background:var(--acc);}
+#submit-rec:disabled{opacity:.4;cursor:not-allowed;}
+#cancel-rec{background:transparent;border:1px solid var(--line) !important;color:var(--mid);}
+#cancel-rec:hover{color:var(--hi);border-color:var(--muted) !important;}
+#modal-msg{font-size:11px;margin-top:8px;text-align:center;min-height:14px;}
+#modal-msg.err{color:#d98860;}
+#modal-msg.ok{color:var(--green);}
+
+/* Community marker badge in info panel */
+.icontrib{
+  display:inline-flex;align-items:center;gap:5px;margin-top:6px;
+  font-family:"DM Mono",monospace;font-size:9px;color:var(--gold);
+  background:rgba(184,151,74,.1);border:1px solid rgba(184,151,74,.25);
+  border-radius:20px;padding:3px 10px;width:fit-content;
+}
+
+
+/* ── PIN-DROP FLOATING HINT ── */
+#pin-hint{
+  position:fixed;top:16px;left:50%;transform:translateX(-50%);
+  background:var(--bg2);border:1.5px solid var(--acc);border-radius:30px;
+  padding:8px 8px 8px 16px;z-index:2100;display:none;
+  align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);
+  font-family:"DM Sans",sans-serif;font-size:12px;color:var(--hi);
+}
+#pin-hint.vis{display:flex;}
+#pin-hint .ph-icon{font-size:16px;animation:pin-bounce 1s ease-in-out infinite;}
+@keyframes pin-bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+#pin-hint button{
+  font-family:"DM Mono",monospace;font-size:9px;padding:5px 12px;border-radius:20px;
+  border:1px solid var(--line);background:var(--bg3);color:var(--mid);cursor:pointer;
+}
+#pin-hint button:hover{color:var(--hi);border-color:var(--muted);}
+
+@media (max-width: 768px){
+  #suggest-btn{font-size:9px;padding:4px 9px;}
+  #modal{width:92vw;padding:16px;}
+}
+
+/* ── SIDEBAR SECTIONS ── */
+.ss{padding:9px 12px;border-bottom:1px solid var(--line);flex-shrink:0;}
+.slbl{font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.srch{position:relative;}
+.srch input{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);color:var(--hi);font-family:"DM Sans",sans-serif;font-size:12px;padding:6px 9px 6px 26px;outline:none;}
+.srch input::placeholder{color:var(--muted);}
+.srch input:focus{border-color:var(--muted);}
+.si{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:11px;pointer-events:none;}
+#daysel{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:var(--r);color:var(--text);font-family:"DM Mono",monospace;font-size:10px;padding:5px 9px;outline:none;appearance:none;cursor:pointer;}
+#daysel:focus{border-color:var(--muted);}
+
+/* ── PILLS ── */
+#pills{display:flex;flex-wrap:wrap;gap:3px;}
+.pill{font-family:"DM Mono",monospace;font-size:8px;padding:2px 7px;border-radius:20px;border:1px solid var(--line);color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.03em;transition:all .12s;}
+.pill.on{color:var(--hi);border-color:var(--bg4);background:var(--bg4);}
+.pill:hover{color:var(--text);border-color:var(--muted);}
+
+/* ── PLACE LIST ── */
+#plist{flex:1;overflow-y:auto;}
+#plist::-webkit-scrollbar{width:3px;}
+#plist::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
+.pi{display:flex;align-items:flex-start;gap:8px;padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;}
+.pi:hover{background:var(--bg3);}
+.pi.sel{background:var(--bg3);border-left:2px solid var(--acc);padding-left:10px;}
+.pd{width:7px;height:7px;border-radius:50%;margin-top:4px;flex-shrink:0;}
+.pn{font-size:11px;font-weight:500;color:var(--hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:158px;}
+.pm{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);margin-top:1px;}
+
+.empty-state{
+  padding:40px 20px;text-align:center;color:var(--muted);
+  font-family:"DM Sans",sans-serif;font-size:12px;line-height:1.7;
+}
+.empty-state strong{color:var(--acc);font-weight:500;}
+.rb{display:inline-block;background:rgba(90,138,106,.12);color:var(--green);border:1px solid rgba(90,138,106,.25);font-size:7px;padding:1px 4px;border-radius:8px;margin-left:4px;font-family:"DM Mono",monospace;}
+
+/* ── MAP CONTROLS ── */
+#mctrl{position:absolute;top:12px;left:12px;z-index:500;display:flex;flex-direction:column;gap:4px;}
+.cb{background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:4px 9px;font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.05em;text-transform:uppercase;color:var(--mid);cursor:pointer;transition:all .12s;}
+.cb:hover,.cb.on{background:var(--bg3);color:var(--hi);border-color:var(--muted);}
+
+/* ── LEGEND ── */
+#legend{position:absolute;top:12px;right:12px;z-index:500;background:var(--bg2);border:1px solid var(--line);border-radius:var(--r);padding:9px 11px;}
+.ll{font-family:"DM Serif Display",serif;font-size:10px;font-style:italic;color:var(--muted);margin-bottom:6px;}
+.lr{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:10px;color:var(--mid);}
+.ld{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+
+/* ── INFO PANEL ── */
+#info{position:absolute;bottom:0;right:0;width:258px;background:var(--bg2);border-top:1px solid var(--line);border-left:1px solid var(--line);border-radius:var(--r) 0 0 0;padding:13px 15px 15px;z-index:500;display:none;}
+#info.vis{display:block;}
+.iclose{position:absolute;top:10px;right:11px;background:var(--bg3);border:1px solid var(--line);border-radius:50%;width:22px;height:22px;color:var(--muted);cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.iclose:hover{color:var(--hi);border-color:var(--muted);}
+#icat{font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+#iname{font-family:"DM Serif Display",serif;font-size:16px;color:var(--hi);line-height:1.2;margin-bottom:5px;padding-right:26px;}
+#iday{display:none;margin-bottom:7px;background:rgba(184,151,74,.1);border:1px solid rgba(184,151,74,.25);border-radius:20px;padding:3px 9px;font-family:"DM Mono",monospace;font-size:8px;color:var(--gold);width:fit-content;}
+#idesc{font-size:11px;color:var(--mid);line-height:1.65;margin-bottom:7px;}
+#itags{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:9px;}
+.itag{font-family:"DM Mono",monospace;font-size:8px;padding:2px 6px;background:var(--bg3);border:1px solid var(--line);border-radius:20px;color:var(--muted);}
+#iacts{display:flex;gap:4px;flex-wrap:wrap;}
+.ia{font-family:"DM Mono",monospace;font-size:8px;padding:4px 9px;border-radius:var(--r);border:none;cursor:pointer;background:var(--acc2);color:var(--hi);transition:background .12s;}
+.ia:hover{background:var(--acc);}
+.ia.g{background:transparent;color:var(--mid);border:1px solid var(--line);}
+.ia.g:hover{color:var(--hi);border-color:var(--muted);background:var(--bg3);}
+
+/* ── ROUTE PANEL ── */
+#rp{position:absolute;bottom:0;left:0;width:224px;background:var(--bg2);border-top:1px solid var(--line);border-right:1px solid var(--line);border-radius:0 var(--r) 0 0;z-index:500;display:none;max-height:220px;overflow-y:auto;}
+#rp.vis{display:block;}
+#rp::-webkit-scrollbar{width:3px;}
+#rp::-webkit-scrollbar-thumb{background:var(--bg4);}
+.rph{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg2);}
+.rpt{font-family:"DM Serif Display",serif;font-size:12px;color:var(--hi);}
+.rpc{background:rgba(200,114,74,.15);color:var(--acc);border:1px solid rgba(200,114,74,.25);font-family:"DM Mono",monospace;font-size:8px;padding:1px 5px;border-radius:10px;margin-left:4px;}
+.rpas{display:flex;gap:3px;}
+.rpb{font-family:"DM Mono",monospace;font-size:8px;padding:2px 7px;border-radius:var(--r);border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:all .12s;}
+.rpb:hover{color:var(--hi);border-color:var(--muted);}
+.rdl{font-family:"DM Mono",monospace;font-size:8px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);padding:5px 12px 2px;font-weight:500;}
+.ri{display:flex;align-items:center;gap:6px;padding:5px 12px;cursor:pointer;transition:background .1s;}
+.ri:hover{background:var(--bg3);}
+.rn{font-family:"DM Mono",monospace;font-size:9px;font-weight:500;color:var(--acc);min-width:12px;}
+.rnm{font-size:10px;font-weight:500;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.rmt{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);flex-shrink:0;}
+.rdel{background:none;border:none;color:var(--line);cursor:pointer;font-size:12px;padding:0 2px;transition:color .1s;}
+.rdel:hover{color:#c44;}
+
+/* ── HOUSING ZONES ── */
+.ss .zone-row{display:flex;align-items:center;gap:8px;padding:5px 0;cursor:pointer;transition:opacity .12s;}
+.ss .zone-row:hover{opacity:.75;}
+.zd{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.zn{font-size:11px;font-weight:500;color:var(--hi);}
+.zs{font-family:"DM Mono",monospace;font-size:8px;color:var(--muted);}
+
+/* ── LEAFLET OVERRIDES ── */
+.leaflet-container{background:var(--bg3) !important;font-family:"DM Sans",sans-serif;}
+.leaflet-control-zoom a{background:var(--bg2) !important;color:var(--mid) !important;border-color:var(--line) !important;}
+.leaflet-control-zoom a:hover{background:var(--bg3) !important;color:var(--hi) !important;}
+.leaflet-control-attribution{background:var(--bg2) !important;color:var(--muted) !important;font-size:9px !important;}
+.leaflet-control-attribution a{color:var(--muted) !important;}
+.map-tooltip .leaflet-popup-content-wrapper{background:var(--bg2) !important;border:1px solid var(--line) !important;border-radius:var(--r) !important;box-shadow:0 4px 16px rgba(0,0,0,.5) !important;}
+.map-tooltip .leaflet-popup-tip{background:var(--bg2) !important;}
+.map-tooltip .leaflet-popup-content{margin:8px 12px !important;}
+.map-tooltip .leaflet-popup-close-button{display:none !important;}
+
+/* ════════════════════════════════════════════════════════════
+   MOBILE  ≤ 768px
+   Layout: map fills screen, bottom tab bar, sheets slide up
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  html, body { height: 100%; overflow: hidden; }
+
+  /* ── APP SHELL ── */
+  #app { flex-direction: column; height: 100dvh; height: 100vh; }
+  #hdr { height: 44px; min-height: 44px; padding: 0 12px; }
+  .htitle { font-size: 14px; gap: 7px; }
+  .hpill { display: none; }
+  #hcount { display: none; }
+
+  /* ── BODY: map only, no sidebar ── */
+  #body { flex-direction: column; }
+  #sb { display: none; }          /* hidden — shown as bottom sheet */
+  #mapwrap { flex: 1; width: 100%; }
+
+  /* ── MAP CONTROLS: compact ── */
+  #mctrl { top: 8px; left: 8px; flex-direction: row; gap: 4px; }
+  .cb { padding: 4px 8px; font-size: 8px; }
+
+  /* ── LEGEND: hidden on mobile ── */
+  #legend { display: none; }
+
+  /* ── BOTTOM TAB BAR ── */
+  #tab-bar {
+    display: flex !important;
+    height: 56px;
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    flex-shrink: 0;
+    z-index: 1000;
+  }
+  .tab-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--muted);
+    font-family: "DM Mono", monospace;
+    font-size: 8px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    transition: color .12s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn .ti { font-size: 18px; line-height: 1; }
+  .tab-btn.active { color: var(--acc); }
+
+  /* ── BOTTOM SHEET BASE ── */
+  .bsheet {
+    position: fixed;
+    bottom: 56px;  /* above tab bar */
+    left: 0; right: 0;
+    background: var(--bg2);
+    border-top: 1px solid var(--line);
+    border-radius: 14px 14px 0 0;
+    z-index: 900;
+    transform: translateY(100%);
+    transition: transform .3s cubic-bezier(.4,0,.2,1);
+    max-height: 75vh;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+  }
+  .bsheet.open { transform: translateY(0); pointer-events: auto; }
+  .bsheet-handle {
+    width: 36px; height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    margin: 10px auto 0;
+    flex-shrink: 0;
+  }
+  .bsheet-title {
+    font-family: "DM Serif Display", serif;
+    font-size: 15px;
+    color: var(--hi);
+    padding: 10px 16px 8px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .bsheet-close {
+    background: var(--bg3); border: 1px solid var(--line);
+    border-radius: 50%; width: 24px; height: 24px;
+    color: var(--muted); cursor: pointer; font-size: 11px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .bsheet-body { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+  .bsheet-body::-webkit-scrollbar { display: none; }
+
+  /* ── PLACES SHEET ── */
+  #sheet-places .ss { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  #sheet-places .slbl { font-size: 8px; }
+  #sheet-places #daysel { font-size: 11px; padding: 6px 10px; }
+  #sheet-places #pills { gap: 4px; }
+  #sheet-places .pill { font-size: 9px; padding: 3px 8px; }
+  #sheet-places .pi { padding: 10px 16px; }
+  #sheet-places .pn { font-size: 12px; max-width: 100%; }
+  #sheet-places .pm { font-size: 9px; }
+
+  /* ── INFO SHEET (overrides desktop info panel) ── */
+  #info {
+    position: fixed !important;
+    bottom: 56px !important;
+    right: auto !important;
+    left: 0 !important;
+    width: 100% !important;
+    border-radius: 14px 14px 0 0 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--line) !important;
+    display: none !important;
+    z-index: 950 !important;
+    max-height: 65vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #info.vis { display: block !important; }
+  #iname { font-size: 18px; }
+  #idesc { font-size: 12px; }
+  .itag { font-size: 9px; padding: 3px 8px; }
+  .ia { font-size: 10px; padding: 7px 12px; }
+
+  /* ── ROUTE PANEL: full-width sheet ── */
+  #rp {
+    position: fixed !important;
+    bottom: 56px !important;
+    left: 0 !important;
+    width: 100% !important;
+    border-radius: 14px 14px 0 0 !important;
+    border-right: none !important;
+    border-top: 1px solid var(--line) !important;
+    max-height: 55vh;
+    z-index: 940 !important;
+  }
+
+  /* ── FILTERS SHEET ── */
+  #sheet-filters .ss { padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  #sheet-filters .slbl { font-size: 9px; margin-bottom: 8px; }
+  #sheet-filters #daysel-m { 
+    width: 100%; background: var(--bg3); border: 1px solid var(--line);
+    border-radius: var(--r); color: var(--text); font-family: "DM Mono", monospace;
+    font-size: 12px; padding: 8px 12px; outline: none; appearance: none;
+  }
+  #sheet-filters #pills-m { display: flex; flex-wrap: wrap; gap: 5px; }
+  #sheet-filters .pill-m {
+    font-family: "DM Mono", monospace; font-size: 10px; padding: 5px 10px;
+    border-radius: 20px; border: 1px solid var(--line); color: var(--muted);
+    cursor: pointer; text-transform: uppercase; letter-spacing: .03em;
+    transition: all .12s;
+  }
+  #sheet-filters .pill-m.on { color: var(--hi); border-color: var(--bg4); background: var(--bg4); }
+
+  /* Housing zone rows in filter sheet */
+  #sheet-filters .zone-row { padding: 10px 0; }
+  #sheet-filters .zn { font-size: 13px; }
+  #sheet-filters .zs { font-size: 9px; }
+}
+
+/* ── TAB BAR: hidden on desktop ── */
+#tab-bar { display: none; }
+/* ── SHEETS: hidden on desktop ── */
+#sheet-places, #sheet-filters { display: none; }
+
+@media (max-width: 768px) {
+  #sheet-places, #sheet-filters { display: flex; flex-direction: column; }
+}
+
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <div id="hdr">
+    <div class="htitle">
+      Way<em>points</em>
+      <div id="country-sel">
+        <button id="country-btn" onclick="toggleCountryMenu()">
+          <span id="cflag">🇰🇷</span><span id="cname">Korea</span><span class="cv">▾</span>
+        </button>
+        <div id="country-menu">
+          <div class="cm-item" data-c="kr" onclick="switchCountry('kr')"><span>🇰🇷</span>Korea</div>
+          <div class="cm-item" data-c="jp" onclick="switchCountry('jp')"><span>🇯🇵</span>Japan</div>
+          <div class="cm-item" data-c="tw" onclick="switchCountry('tw')"><span>🇹🇼</span>Taiwan</div>
+          <div class="cm-item" data-c="kg" onclick="switchCountry('kg')"><span>🇰🇬</span>Kyrgyzstan</div>
+        </div>
+      </div>
+      <span class="hpill" id="hpill">124 places</span>
+    </div>
+    <div class="hright">
+      <span id="hcount"></span>
+      <button id="suggest-btn" onclick="openSuggestModal()">+ Suggest a place</button>
+      <button id="theme-btn" onclick="toggleTheme()">🌙 Dark</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body">
+
+    <!-- SIDEBAR -->
+    <div id="sb">
+
+      <div class="ss">
+        <div class="srch">
+          <span class="si">⌕</span>
+          <input id="q" type="text" placeholder="Search places, areas…">
+        </div>
+      </div>
+
+      <div class="ss">
+        <div class="slbl">Filter by day</div>
+        <select id="daysel"></select>
+      </div>
+
+      <div class="ss">
+        <div class="slbl">Filter by neighbourhood</div>
+        <select id="areasel"></select>
+      </div>
+
+      <div class="ss">
+        <div class="slbl">Type</div>
+        <div id="pills"></div>
+      </div>
+
+      <div class="ss" id="housing-section">
+        <div class="slbl">Housing zones</div>
+        <div id="housing-list"></div>
+      </div>
+
+      <div id="plist"></div>
+    </div>
+
+    <!-- MAP -->
+    <div id="mapwrap">
+      <div id="map"></div>
+
+      <div id="mctrl">
+        <button class="cb on" id="bAll" onclick="setView('all')">All places</button>
+        <button class="cb" id="bZone" onclick="setView('zones')">Housing zones</button>
+        <button class="cb" onclick="resetView()">Reset view</button>
+      </div>
+
+      <div id="legend">
+        <div class="ll">Place types</div>
+        <div class="lr"><div class="ld" style="background:#c8724a"></div>Skincare</div>
+        <div class="lr"><div class="ld" style="background:#7a6aaa"></div>Shopping</div>
+        <div class="lr"><div class="ld" style="background:#b8974a"></div>Food</div>
+        <div class="lr"><div class="ld" style="background:#5a8a6a"></div>Culture</div>
+        <div class="lr"><div class="ld" style="background:#4a7a9a"></div>Transport</div>
+        <div class="lr"><div class="ld" style="background:#a86a88"></div>Stay</div>
+        <div class="lr"><div class="ld" style="background:#c8724a"></div>Neighbourhood</div>
+        <div class="lr"><div class="ld" style="background:#7a8a9a"></div>Day Trip</div>
+      </div>
+
+      <div id="info">
+        <button class="iclose" onclick="closeInfo()">✕</button>
+        <div id="icat"></div>
+        <div id="iname"></div>
+        <div id="iday"></div>
+        <div id="idesc"></div>
+        <div id="itags"></div>
+        <div id="iacts">
+          <button class="ia" id="iroute">+ Day Plan</button>
+          <a class="ia g" id="inaver" href="#" target="_blank">🗺 Naver</a>
+          <a class="ia g" id="iig" href="#" target="_blank">📸 IG</a>
+        </div>
+      </div>
+
+      <div id="rp">
+        <div class="rph">
+          <span class="rpt">Day Plan <span class="rpc" id="rcount">0</span></span>
+          <div class="rpas">
+            <button class="rpb" onclick="fitRoute()">Fit</button>
+            <button class="rpb" onclick="clearRoute()">Clear</button>
+          </div>
+        </div>
+        <div id="rlist"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── PIN DROP HINT ── -->
+<div id="pin-hint">
+  <span class="ph-icon">📍</span>
+  <span>Click anywhere on the map to place your pin</span>
+  <button onclick="cancelPinMode()">Cancel</button>
+</div>
+
+<!-- ── SUGGEST A PLACE MODAL ── -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Suggest a place</h2>
+    <div class="modal-sub">Adding a recommendation for <strong id="modal-country" style="color:var(--acc);font-weight:500;"></strong>. Your name will show on the pin so GJ knows it's from you.</div>
+
+    <div class="mfield">
+      <label>Your name</label>
+      <input type="text" id="f-contributor" placeholder="e.g. TK">
+    </div>
+
+    <div class="mfield">
+      <label>Place name</label>
+      <input type="text" id="f-name" placeholder="e.g. Onion Café">
+    </div>
+
+    <div class="mrow">
+      <div class="mfield">
+        <label>Category</label>
+        <select id="f-category">
+          <option value="Neighbourhood">Neighbourhood</option>
+          <option value="Shopping">Shopping</option>
+          <option value="Skincare">Skincare</option>
+          <option value="Food" selected>Food</option>
+          <option value="Transport">Transport</option>
+          <option value="Accommodation">Accommodation</option>
+          <option value="Culture">Culture</option>
+          <option value="DayTrip">Day Trip</option>
+        </select>
+      </div>
+      <div class="mfield">
+        <label>Suggested day</label>
+        <select id="f-day">
+          <option value="Flexible" selected>Flexible</option>
+          <option value="Day 1">Day 1</option>
+          <option value="Day 1-2">Day 1-2</option>
+          <option value="Day 3">Day 3</option>
+          <option value="Day 3-4">Day 3-4</option>
+          <option value="Day 5">Day 5</option>
+          <option value="Day 5-6">Day 5-6</option>
+          <option value="Day 7">Day 7</option>
+          <option value="Day 7-8">Day 7-8</option>
+          <option value="Day 9">Day 9</option>
+          <option value="Day 10-11">Day 10-11</option>
+          <option value="Day 12-13">Day 12-13</option>
+          <option value="Day 14">Day 14</option>
+          <option value="Evenings">Evenings</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="mfield">
+      <label>Area / Neighbourhood</label>
+      <input type="text" id="f-area" placeholder="e.g. Seongsu Seoul">
+    </div>
+
+    <div class="mfield">
+      <label>Location on map</label>
+      <div class="loc-search">
+        <input type="text" id="f-locsearch" placeholder="Search for a place or address…">
+        <button id="locsearch-btn" onclick="searchLocation()">🔎</button>
+      </div>
+      <div id="loc-results"></div>
+      <div id="pin-status">
+        <span id="pin-status-text">Search above, or click "Drop pin" then click the map</span>
+        <button id="pin-btn" onclick="togglePinMode()">📍 Drop pin</button>
+      </div>
+      <div class="loc-credit">Search powered by OpenStreetMap / Nominatim</div>
+    </div>
+
+    <div class="mfield">
+      <label>Description / why it's worth visiting</label>
+      <textarea id="f-desc" placeholder="What makes this place worth a visit? Any tips, links, @handles..."></textarea>
+    </div>
+
+    <div class="mfield">
+      <label>Tags (comma separated)</label>
+      <input type="text" id="f-tags" placeholder="e.g. cafe, dessert, quiet">
+    </div>
+
+    <div class="mfield">
+      <label>Source link (optional)</label>
+      <input type="text" id="f-source" placeholder="Instagram / Naver / website link">
+    </div>
+
+    <div id="modal-actions">
+      <button id="cancel-rec" onclick="closeSuggestModal()">Cancel</button>
+      <button id="submit-rec" onclick="submitRec()">Add to map</button>
+    </div>
+    <div id="modal-msg"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── SUPABASE CONFIG ─────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://zlahhruecdfpioewbpaq.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpsYWhocnVlY2RmcGlvZXdicGFxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5NTA4MTgsImV4cCI6MjA5MzUyNjgxOH0.YxhjIZBDRlxbqmt-utMNifi_067NyvPkmqxPa_ZG5uk';
+
+let communityRecs = []; // populated on load from Supabase
+let pendingPin = null;  // {lat, lng} while suggest modal is open
+
+const P_KR=[
+  {n:"Jongno",c:"Neighbourhood",lat:37.5700,lng:126.9782,area:"Seoul",d:"#1 area for first-timers. Real Korea vibe. Historic transit hub. Quiet nights.",tags:["stay","historic","transit"],day:"Day 1-2"},
+  {n:"Myeongdong",c:"Neighbourhood",lat:37.5631,lng:126.9858,area:"Seoul",d:"Tourist central. Street food. Airport bus stop. Safe at night. L7 Hotel rooftop.",tags:["stay","street food","tourist"],day:"Day 1-2"},
+  {n:"Hongdae",c:"Neighbourhood",lat:37.5563,lng:126.9236,area:"Seoul",d:"Young, energetic. Nightlife, restaurants, stores. ÅLAND & MUSINSA nearby. ★ Top pick.",tags:["stay","nightlife","★ top pick"],day:"Day 3"},
+  {n:"Gangnam",c:"Neighbourhood",lat:37.4979,lng:127.0276,area:"Seoul",d:"Upscale. Shinsegae dept store, skincare clinics, fashion brands.",tags:["stay","upscale","shopping"],day:"Day 7-8"},
+  {n:"Itaewon",c:"Neighbourhood",lat:37.5347,lng:126.9947,area:"Seoul",d:"Expat-friendly. International dining. Boutique shopping. Close to Hannam.",tags:["stay","expat","dining"],day:"Flexible"},
+  {n:"Seongsu",c:"Neighbourhood",lat:37.5448,lng:127.0557,area:"Seoul",d:"THE coolest neighbourhood. Concept stores, creative energy. ★ Top pick.",tags:["stay","trendy","★ top pick"],day:"Day 5"},
+  {n:"Hannam",c:"Neighbourhood",lat:37.5341,lng:127.0003,area:"Seoul",d:"Upscale boutiques. Citybreeze, Mardi Mercredi. ★ Top pick.",tags:["stay","upscale","boutique"],day:"Day 5"},
+  {n:"Yeonam",c:"Neighbourhood",lat:37.5614,lng:126.9279,area:"Seoul",d:"Quiet alternative to Hongdae. Local cafés, cheaper food.",tags:["stay","quiet","cafes"],day:"Day 3"},
+  {n:"Euljiro",c:"Neighbourhood",lat:37.5663,lng:126.9905,area:"Seoul",d:"Walkable from Myeongdong. Trendy, great restaurants.",tags:["stay","trendy"],day:"Day 1-2"},
+  {n:"Sinchon",c:"Neighbourhood",lat:37.5550,lng:126.9374,area:"Seoul",d:"Near Hongdae. Cheaper food and great bars.",tags:["stay","budget","bars"],day:"Day 4 (night)"},
+  {n:"Apgujeong",c:"Neighbourhood",lat:37.5276,lng:127.0286,area:"Seoul",d:"Luxury and streetwear hub. Worksout store.",tags:["stay","luxury","streetwear"],day:"Day 7-8"},
+  {n:"Incheon Airport",c:"Transport",lat:37.4602,lng:126.4407,area:"Incheon",d:"Main airport. Airport Limousine bus to Seoul. Smart Pass to skip queues.",tags:["airport","entry"],day:"Flexible"},
+  {n:"Seoul Station",c:"Transport",lat:37.5547,lng:126.9706,area:"Seoul",d:"AREX express from Incheon ~45 min nonstop.",tags:["transit","train","arex"],day:"Day 1"},
+  {n:"National Museum of Korea",c:"Culture",lat:37.5245,lng:126.9800,area:"Yongsan",d:"Ichon Station Exit 2. Free entry (fee from 2027). Best souvenir shop in Seoul.",tags:["museum","free","history"],day:"Flexible"},
+  {n:"Hanok Village / Bukchon",c:"Culture",lat:37.5787,lng:126.9846,area:"Jongno",d:"Historic winding streets. Granhand perfumery here. Beautiful walks.",tags:["historic","walking","souvenir"],day:"Flexible"},
+  {n:"Gwangjang Market",c:"Culture",lat:37.5697,lng:126.9990,area:"Jongno",d:"Iconic traditional market. Street food and textiles.",tags:["market","food","culture"],day:"Day 9"},
+  {n:"Weave Suite Seoyu Parkside",c:"Accommodation",lat:37.5382,lng:126.9024,area:"Seoyu",d:"Premium serviced apartment. Han River terrace view. Co-working, yoga, housekeeping.",tags:["longstay","serviced","han river"],day:"Day 1"},
+  {n:"LiveAnywhere Loft",c:"Accommodation",lat:37.5697,lng:126.9995,area:"Jongno",d:"Near Gwangjang Market. 1 week+ stays. Seoul studios + Jeju beach houses.",tags:["shortterm","rental","1week+"],day:"Flexible"},
+  {n:"DNA Skin Clinic",c:"Skincare",lat:37.5019,lng:127.0262,area:"Gangnam",d:"Microneedling, RF, airjet treatments. English-speaking. Highly recommended.",tags:["clinic","skin","english"],day:"Day 7-8"},
+  {n:"Optima Wellness Museum Pharmacy",c:"Skincare",lat:37.4979,lng:127.0300,area:"Gangnam",d:"Pharmacy heaven near Gangnam. Skincare treatments.",tags:["pharmacy","skincare"],day:"Day 7"},
+  {n:"Seoulistique Skin",c:"Skincare",lat:37.5499,lng:126.9543,area:"Aeogae",d:"Skin analysis + 8-step Astrodome facial. Book via Instagram DM.",tags:["clinic","analysis","facial"],day:"Day 7-8"},
+  {n:"Abijou Myeongdong",c:"Skincare",lat:37.5631,lng:126.9828,area:"Myeongdong",d:"Affordable skin clinic. Great for foreigners. Personal care.",tags:["clinic","affordable"],day:"Day 2"},
+  {n:"Abijou Hongdae",c:"Skincare",lat:37.5553,lng:126.9215,area:"Hongdae",d:"Less crowded Hongdae branch of Abijou.",tags:["clinic","hongdae"],day:"Day 3-4"},
+  {n:"Joa Pilates (ear seeding)",c:"Skincare",lat:37.5150,lng:127.0350,area:"Seoul",d:"Ear seeding therapy. Book via Instagram DM.",tags:["wellness","ear seeding"],day:"Flexible"},
+  {n:"NOMANUAL Flagship",c:"Shopping",lat:37.5435,lng:127.0575,area:"Seongsu",d:"Elevated Korean streetwear. Top pick.",tags:["streetwear","seongsu"],day:"Day 5-6"},
+  {n:"thisisneverthat Seongsu",c:"Shopping",lat:37.5445,lng:127.0565,area:"Seongsu",d:"Best Korean streetwear brand — multiple sources agree.",tags:["streetwear","seongsu","★"],day:"Day 5-6"},
+  {n:"Musinsa Standard Seongsu",c:"Shopping",lat:37.5440,lng:127.0580,area:"Seongsu",d:"MUSINSA basics line flagship.",tags:["musinsa","seongsu"],day:"Day 5-6"},
+  {n:"LOW CLASSIC Seongsu",c:"Shopping",lat:37.5450,lng:127.0560,area:"Seongsu",d:"Minimalist Korean womenswear.",tags:["minimalist","seongsu"],day:"Day 5-6"},
+  {n:"Beaker Seongsu",c:"Shopping",lat:37.5438,lng:127.0570,area:"Seongsu",d:"Multi-brand select shop.",tags:["multibrand","seongsu"],day:"Day 5-6"},
+  {n:"ÅLAND Hongdae",c:"Shopping",lat:37.5560,lng:126.9230,area:"Hongdae",d:"Multi-brand concept store.",tags:["multibrand","hongdae"],day:"Day 3-4"},
+  {n:"MUSINSA Hongdae",c:"Shopping",lat:37.5557,lng:126.9225,area:"Hongdae",d:"Korean streetwear platform flagship.",tags:["streetwear","musinsa","hongdae"],day:"Day 3-4"},
+  {n:"Citybreeze Seoul",c:"Shopping",lat:37.5335,lng:127.0007,area:"Hannam",d:"Seoul lifestyle concept store.",tags:["lifestyle","hannam"],day:"Day 5-6"},
+  {n:"Fucking Awesome Seoul",c:"Shopping",lat:37.5343,lng:127.0013,area:"Hannam",d:"Skate / streetwear brand flagship.",tags:["skate","streetwear","hannam"],day:"Day 5-6"},
+  {n:"Mardi Mercredi Hannam",c:"Shopping",lat:37.5338,lng:127.0018,area:"Hannam",d:"Casual creative Korean fashion brand.",tags:["fashion","hannam"],day:"Flexible"},
+  {n:"Granhand Perfumery",c:"Shopping",lat:37.5787,lng:126.9850,area:"Hanok Village",d:"Custom perfumery. Name your bottle. Best Seoul souvenir.",tags:["souvenir","perfume","custom"],day:"Day 7-8"},
+  {n:"Shinsegae Gangnam (5F & 8F)",c:"Shopping",lat:37.5050,lng:127.0049,area:"Gangnam",d:"15 Korean fashion brands locals shop. Floors 5 & 8. Skip Myeongdong.",tags:["dept store","local brands"],day:"Day 7-8"},
+  {n:"Worksout Apgujeong",c:"Shopping",lat:37.5280,lng:127.0290,area:"Apgujeong",d:"Streetwear store. Highly recommended.",tags:["streetwear","apgujeong"],day:"Day 7-8"},
+  {n:"Révdou (Moon Croissant)",c:"Food",lat:37.5565,lng:126.9247,area:"Seoul",d:"Multi-layer vanilla tahiti cream croissant. Hottest croissant in Seoul.",tags:["bakery","croissant"],day:"Flexible"},
+  {n:"The Truffle Bakery",c:"Food",lat:37.5580,lng:126.9800,area:"Seoul",d:"Tissue bread — peel-apart crispy outside fluffy inside.",tags:["bakery","bread"],day:"Flexible"},
+  {n:"Bijeonstrol Yeonhui Roastery",c:"Food",lat:37.5692,lng:126.9201,area:"Yeonhui",d:"Seasonal toast with butter. Great with coffee.",tags:["bakery","toast"],day:"Flexible"},
+  {n:"Amor Napoli",c:"Food",lat:37.5520,lng:126.9220,area:"Seoul",d:"Fire-baked salt bread. Wood-fired. Crispy + chewy.",tags:["bakery","salt bread"],day:"Flexible"},
+  {n:"Belief Coffee Roasters",c:"Food",lat:37.5540,lng:126.9250,area:"Seoul",d:"Apple cream bread — sells out instantly. Check baking schedule.",tags:["bakery","coffee"],day:"Flexible"},
+  {n:"Sokcho",c:"DayTrip",lat:38.2070,lng:128.5918,area:"Gangwon",d:"Days 6-7. Gateway to Seoraksan National Park. Coastal city.",tags:["itinerary","coastal"],day:"Day 10"},
+  {n:"Seoraksan National Park",c:"DayTrip",lat:38.1194,lng:128.4656,area:"Gangwon",d:"Dramatic mountain scenery. Day trip or overnight.",tags:["nature","mountain","hiking"],day:"Day 10"},
+  {n:"Gangneung",c:"DayTrip",lat:37.7519,lng:128.8760,area:"Gangwon",d:"Days 8-9. Beaches, historic homes. 2 hrs by KTX.",tags:["beach","historic","ktx"],day:"Day 11"},
+  {n:"Gyeongju",c:"DayTrip",lat:35.8561,lng:129.2245,area:"N. Gyeongsang",d:"Days 10-12. Ancient temples, royal tombs. Korea's ancient capital.",tags:["ancient","temples","history"],day:"Day 12-13"},
+  {n:"Busan",c:"DayTrip",lat:35.1796,lng:129.0756,area:"S. Gyeongsang",d:"Days 13-15. Seaside city, markets, beaches, parks.",tags:["beach","market","city"],day:"Day 10-11"},
+  {n:"Hwangnyeongsan Beacon",c:"DayTrip",lat:35.1535,lng:129.0755,area:"Busan",d:"Best viewpoint in Busan. Take Uber up. Burning red sunset city lights.",tags:["viewpoint","busan","sunset"],day:"Flexible"},
+  {n:"DMZ",c:"DayTrip",lat:37.9532,lng:126.6612,area:"Gyeonggi border",d:"Demilitarized Zone tour. Book via Klook. Recommended last day.",tags:["tour","history","klook"],day:"Day 13"},
+  {n:"Nami Island",c:"DayTrip",lat:37.7916,lng:127.5244,area:"Gyeonggi",d:"Day trip bookable on Klook.",tags:["daytrip","nature"],day:"Day 9 (day trip)"},
+  {n:"Heyri Art Village",c:"DayTrip",lat:37.7660,lng:126.7289,area:"Gyeonggi",d:"Half-day trip. Museums and Korean Folk Museum.",tags:["art","museum","halfday"],day:"Day 9 (day trip)"},
+  {n:"Jeju Island",c:"DayTrip",lat:33.4996,lng:126.5312,area:"Jeju",d:"Dreamy beach houses via LiveAnywhere. Side trip option.",tags:["beach","island"],day:"Flexible"},
+  // ── From @mijainseoul ──────────────────────────────────────────────────
+  {n:"The Air House Festival",c:"Culture",lat:37.7916,lng:127.5244,area:"Nami Island",d:"Eco-friendly house music festival in nature. May annually. 30+ friendly, kid/pet/vegan/foreigner-friendly. Sauna bus, yoga, live bands, disco aerobics, karaoke, camping. @the_airhouse",tags:["festival","music","30+","nami island"],day:"Flexible"},
+  {n:"Cimer at Paradise City",c:"Skincare",lat:37.4959,lng:126.4876,area:"Incheon",d:"Foreigner & tattoo-friendly spa complex near Incheon Airport. 100% stress-free jjimjilbang experience. Great pre/post-flight.",tags:["jjimjilbang","tattoo-friendly","incheon","spa"],day:"Flexible"},
+  {n:"숲속한방랜드 Forest Korean Bath",c:"Skincare",lat:37.5550,lng:126.9374,area:"Sinchon Seoul",d:"Outdoor charcoal sauna near Sinchon. Search 찜질방 in Naver Maps for nearest.",tags:["jjimjilbang","sauna","sinchon","outdoor"],day:"Flexible"},
+  {n:"아쿠아필드 Aquafield",c:"Skincare",lat:37.6650,lng:126.7600,area:"Goyang (suburban Seoul)",d:"Luxury jjimjilbang experience outside central Seoul. Worth the trip.",tags:["jjimjilbang","luxury","suburban"],day:"Flexible"},
+  {n:"Reclow Myeongdong Flagship",c:"Shopping",lat:37.5605,lng:126.9850,area:"Myeongdong Seoul",d:"Trendy affordable accessories — folding sunglasses, bags, rain boots. Open daily 10:30–23:00. 12 Myeong-dong 8-na-gil.",tags:["accessories","sunglasses","bags","myeongdong","affordable"],day:"Day 2"},
+  {n:"Sam Sam Sam (쓰리쓰리쓰리)",c:"Food",lat:37.5748,lng:126.9769,area:"Gwanghwamun Seoul",d:"American-style cozy bistro from Samcheong-dong, now in Gwanghwamun. Creative dishes only found in Korea. Naver: naver.me/Goivggyk",tags:["restaurant","bistro","gwanghwamun","creative"],day:"Flexible"},
+  {n:"Kyobo Book Centre (교보문고)",c:"Culture",lat:37.5710,lng:126.9769,area:"Gwanghwamun Seoul",d:"Korea's largest bookstore. K-stationery, stickers, music, unique souvenirs. Easy to lose hours here.",tags:["bookstore","souvenir","stationery","gwanghwamun"],day:"Day 9"},
+  {n:"NYUNYU (뉴뉴)",c:"Shopping",lat:37.5628,lng:126.9840,area:"Myeongdong Seoul",d:"Multi-story accessory heaven — thousands of earrings, necklaces, bags, hats at very affordable prices. Open late.",tags:["accessories","affordable","myeongdong","open late"],day:"Day 2"},
+  {n:"Manhwa-bang / Comic Café (놀숲 Nolsoop)",c:"Culture",lat:37.5560,lng:126.9236,area:"Hongdae Seoul",d:"Private pods with curtains, blankets, pillows. Order ramyeon to your pod. ~₩3,000–4,000/hr. Nolsoop (놀숲) & Beoltoon (벌툰) are the main chains. Near subway stations city-wide.",tags:["hidden gem","comic cafe","pods","manhwabang","relax"],day:"Flexible"},
+  {n:"Yonghada Korean Medicine Clinic (용하다 한의원)",c:"Skincare",lat:37.5608,lng:126.9856,area:"Myeongdong Seoul",d:"Myeongdong Station Exit 2. English/Japanese/Chinese/Spanish speaking. Cupping, acupuncture, ginseng injection, chuna therapy, facial lifting. Check-up ₩132,000. Healing Course C ₩242,000. @yonghadaclinic_en",tags:["clinic","acupuncture","cupping","ginseng","multilingual","myeongdong"],day:"Day 7-8"},
+  {n:"Rolling Jay Hair Salon",c:"Accommodation",lat:37.5500,lng:126.9250,area:"Seoul",d:"Celebrity-level hair stylist. @rollingjay_siwon__ (women) & @rollingjay_siwon__men. Book via DM, Kakao ID: ruddo462, or Naver. naver.me/F9N4yI6L",tags:["hair salon","celebrity stylist","beauty","book via kakao"],day:"Flexible"},
+  // ── From Liked Posts Export ────────────────────────────────────────────
+  {n:"Vands Clinic Hongdae",c:"Skincare",lat:37.5570,lng:126.9220,area:"Hongdae Seoul",d:"Foreign-friendly clinic — rejuran, filler, botox. First stop for many on arrival. Also Myeongdong + Gangnam branches. @vands_myeongdong",tags:["clinic","rejuran","foreigner-friendly","hongdae"],day:"Day 3-4"},
+  {n:"Vands Clinic Myeongdong",c:"Skincare",lat:37.5608,lng:126.9856,area:"Myeongdong Seoul",d:"Foreign-friendly injectable clinic. Popular 30s crowd. @vands_myeongdong | Gangnam: @vands_myeongdong_gangnam_eng",tags:["clinic","filler","botox","myeongdong"],day:"Day 2"},
+  {n:"Eraser Clinic (Dr. Eraser)",c:"Skincare",lat:37.5210,lng:127.0220,area:"Sinsa Gangnam Seoul",d:"Tune Liner — jawline contouring, no bruising, instant results. @dreraserclinic. Sinsa-dong Gangnam.",tags:["clinic","jawline","tune liner","gangnam"],day:"Day 7"},
+  {n:"Inko Seoul (잉코서울)",c:"Skincare",lat:37.5665,lng:126.9780,area:"Seoul",d:"FREE skin analysis before Olive Young shopping. Skin age + type + 6 characteristics + customised routine. @inkoseoul_official",tags:["skin analysis","free","olive young","routine"],day:"Day 7-8"},
+  {n:"Jeil Grand Pharmacy (제일그랑약국)",c:"Skincare",lat:37.5000,lng:127.0250,area:"Gangnam Seoul",d:"Curated Korean pharmacy in Gangnam near clinics. @jeilgrand_pharmacy_global. Carries USOLAB + clinical skincare.",tags:["pharmacy","gangnam","skincare"],day:"Day 7"},
+  {n:"Olive Young — Free Skin Analysis",c:"Skincare",lat:37.5631,lng:126.9858,area:"Myeongdong Seoul",d:"Free in-store skin analysis. Measurements + skin type + 6 characteristics + customised routine. Multiple Seoul locations.",tags:["skin analysis","free","olive young","myeongdong"],day:"Day 7-8"},
+  {n:"애리꼼닭발 (Aeri's Chicken Feet)",c:"Food",lat:37.5597,lng:127.0373,area:"Wangsimni Seoul",d:"Viral spicy chicken feet. Wait ~1hr — grab ticket and come back. 📍3 Wangsimni-ro 22-gil, Doseon-dong, Seongdong-gu",tags:["restaurant","chicken feet","viral","local"],day:"Day 3-4"},
+  {n:"Rain Report Café",c:"Food",lat:37.5630,lng:126.9830,area:"Seoul",d:"Concept café where it rains 24/7 inside. Cosy any season. @rain.report",tags:["cafe","concept","rain","unique"],day:"Day 3-4"},
+  {n:"Korea Bakery World Cup Winner Bakery",c:"Food",lat:36.3219,lng:127.4194,area:"Daejeon",d:"Bakery by Korea's Bakery World Cup team leader. Incredible textures and flavours. Day trip from Seoul.",tags:["bakery","daejeon","world cup","day trip"],day:"Day 10 (day trip)"},
+  {n:"Scooper Gelato",c:"Food",lat:37.5500,lng:127.0400,area:"Seoul",d:"Top trending café on Korean social media. @scooper_gelato",tags:["cafe","gelato","trending"],day:"Day 3-4"},
+  {n:"Pachamama Bakery",c:"Food",lat:37.5540,lng:126.9250,area:"Seoul",d:"Trending café on Korean social media. @pachamama.bakery",tags:["cafe","bakery","trending"],day:"Day 3-4"},
+  {n:"House of Vinyl Yeonhui",c:"Food",lat:37.5692,lng:126.9201,area:"Yeonhui Seoul",d:"Trending café. @houseofvinyl_yeonhui — Yeonhui near Hongdae.",tags:["cafe","vinyl","yeonhui","trending"],day:"Day 3-4"},
+  {n:"Crepeboy Seoul",c:"Food",lat:37.5500,lng:126.9220,area:"Seoul",d:"Trending café. @crepeboyseoul",tags:["cafe","crepe","trending"],day:"Day 3-4"},
+  {n:"Friends and Yard",c:"Food",lat:37.5560,lng:126.9250,area:"Seoul",d:"Trending café. @friends.and.yard",tags:["cafe","trending"],day:"Day 3-4"},
+  {n:"WAA Seoul",c:"Food",lat:37.5450,lng:127.0570,area:"Seongsu Seoul",d:"Trending café on Korean social media. @waa.seoul",tags:["cafe","trending","seongsu"],day:"Day 3-4"},
+  {n:"Roofcat Cat Café Hongdae",c:"Culture",lat:37.5570,lng:126.9240,area:"Hongdae Seoul",d:"Cat café in Hongdae. Admission includes unlimited self-serve tea + coffee. @roofcatme_hongdae",tags:["cat cafe","hongdae","unique"],day:"Flexible"},
+  {n:"Seoul Baseball (KBO League)",c:"Culture",lat:37.5122,lng:127.0719,area:"Jamsil Seoul",d:"KBO baseball = full-on party. Beer, fried chicken, intense cheering. Nothing like it. DM @hungrypursuit 'SEOUL BASEBALL' for how to book.",tags:["baseball","kbo","party","jamsil","local"],day:"Day 2-3"},
+  {n:"Workshop by Baskin Robbins",c:"Culture",lat:37.5185,lng:127.0340,area:"Nonhyeon-ro Gangnam Seoul",d:"World's first AI ice cream shop + lab. Flavours: wasabi, Cheetos, truffle. 📍201 Nonhyeon-ro, Gangnam. @baskinrobbinskorea",tags:["ice cream","ai","gangnam","unique"],day:"Day 7-8"},
+  {n:"Jangsan Mountain Park (장산산림욕장)",c:"DayTrip",lat:35.2100,lng:129.1200,area:"Busan",d:"Very local park foreigners rarely visit. Walk or intense hike. Authentic Busan neighbourhood life.",tags:["park","hiking","busan","local"],day:"Day 10-11"},
+  {n:"Discover Seoul Pass",c:"Transport",lat:37.5700,lng:126.9820,area:"Seoul",d:"Multi-attraction + transit pass. Code KAY-SEOULPASS for ₩5,000 discount.",tags:["pass","transit","discount","tip"],day:"Flexible"},
+  {n:"Lotte Hotel Seoul",c:"Accommodation",lat:37.5637,lng:126.9822,area:"Myeongdong Seoul",d:"5-star hotel in Myeongdong. Great for first-timers. @lottehotelseoul",tags:["hotel","5-star","myeongdong","luxury"],day:"Day 1-2"},
+  {n:"JW Marriott Jeju",c:"Accommodation",lat:33.2540,lng:126.4120,area:"Jeju Island",d:"Luxury hotel on Jeju. @JWmarriotjeju",tags:["hotel","luxury","jeju","marriott"],day:"Day 12-13"},
+  {n:"Eastern Medicine Hospital (한의원)",c:"Skincare",lat:37.5560,lng:126.9240,area:"Seoul",d:"Traditional Korean medicine — cupping, herbal, acupuncture. Under $45/visit. Find via Naver Maps: 한의원",tags:["traditional medicine","cupping","acupuncture","affordable"],day:"Day 7-8"},
+  {n:"Hair of Seoul",c:"Skincare",lat:37.5500,lng:126.9820,area:"Seoul",d:"Hair clinic/salon. Cheaper than Turkey. @hairofseoul — DM/Kakao/Instagram for bookings.",tags:["hair","salon","affordable"],day:"Flexible"},
+  {n:"Park Jun Hair Salon (박준뷰티랩)",c:"Skincare",lat:37.5560,lng:126.9820,area:"Seoul",d:"15-step Korean hair spa. @parkjun2342 for booking.",tags:["hair","salon","hair spa","luxury"],day:"Flexible"},
+  {n:"Glowny",c:"Shopping",lat:37.5350,lng:127.0010,area:"Hannam Seoul",d:"Contemporary independent boutique in Hannam-dong.",tags:["boutique","hannam","fashion"],day:"Day 5-6"},
+  {n:"Loeuvre (Hannam)",c:"Shopping",lat:37.5345,lng:127.0015,area:"Hannam Seoul",d:"Independent boutique in Hannam-dong.",tags:["boutique","hannam"],day:"Day 5-6"},
+  {n:"Folnua",c:"Shopping",lat:37.5340,lng:127.0020,area:"Hannam Seoul",d:"Independent boutique in Hannam-dong.",tags:["boutique","hannam"],day:"Day 5-6"},
+  {n:"Muut",c:"Shopping",lat:37.5345,lng:127.0005,area:"Hannam Seoul",d:"Independent boutique in Hannam-dong.",tags:["boutique","hannam"],day:"Day 5-6"},
+  {n:"Roman & You Seongsu",c:"Shopping",lat:37.5445,lng:127.0560,area:"Seongsu Seoul",d:"Roman&You makeup Pink Office pop-up in Seongsu. @romandyou — check if running.",tags:["popup","seongsu","makeup"],day:"Day 5-6"},
+  // ── June 2026 sweep ───────────────────────────────────────────────────
+  {n:"Yonsei Pain Clinic",c:"Skincare",lat:37.5505,lng:126.9250,area:"Mapo Seoul",d:"@yonseian.painclinic — ANS test, X-ray, 3D AI posture, massage. Multiple creators for back/neck pain.",tags:["clinic","posture","back","neck"],day:"Day 7-8"},
+  {n:"신사형통정형외과 Sinsa Hyeong Tong",c:"Skincare",lat:37.5248,lng:127.0198,area:"Sinsa Gangnam",d:"X-ray, treadmill body scan, posture analysis, back/neck treatment. Annual visits by one creator.",tags:["clinic","back","posture","gangnam"],day:"Day 7"},
+  {n:"Stretch U Care",c:"Skincare",lat:37.4967,lng:127.0442,area:"Dogok Gangnam",d:"90-min full-body stretch. Completely resets you. @stretch_u_care_global. 📍408 510 Dogok-ro, Gangnam.",tags:["stretch","wellness","gangnam"],day:"Day 7"},
+  {n:"Medione Medical Global",c:"Skincare",lat:37.5000,lng:127.0350,area:"Gangnam Seoul",d:"Full body MRI scan. @medione_medical_global.",tags:["mri","medical tourism","full body"],day:"Day 7-8"},
+  {n:"Relieve Clinic",c:"Skincare",lat:37.5580,lng:126.9250,area:"Seoul",d:"Acne/breakout treatment. @relieve_clinic_ — 3rd visit, genuine use.",tags:["clinic","acne","breakout"],day:"Day 7-8"},
+  {n:"APM Place (에이피엠)",c:"Shopping",lat:37.5668,lng:127.0085,area:"Dongdaemun Seoul",d:"8-storey wholesale clothing. Open until 5am. Vendors ignore foreigners on wholesale floors — use Mimiline or NYUNYU inside instead (foreigner-friendly, card OK, tax-free).",tags:["shopping","wholesale","5am","dongdaemun"],day:"Day 9 (evening)"},
+  {n:"Tongin Market (통인시장)",c:"Food",lat:37.5793,lng:126.9700,area:"Jongno Seoul",d:"Best street food. Coin-based tray system — exchange cash for coins, fill tray from multiple stalls. Solo-friendly. Near Gyeongbokgung.",tags:["market","streetfood","coins","jongno"],day:"Day 2"},
+  {n:"Cheongnyangni Market",c:"Food",lat:37.5804,lng:127.0479,area:"Cheongnyangni Seoul",d:"Packed with locals, zero tourist energy. Deliberately hard to find on Google. DM @cutthelandline 'seoul eats' for exact address.",tags:["market","local","hidden","authentic"],day:"Day 9"},
+  {n:"Chungmuro Neighbourhood",c:"Neighbourhood",lat:37.5598,lng:126.9973,area:"Jung-gu Seoul",d:"@dianainseoul recommends staying here. Between Myeongdong and Dongdaemun lines 3/4. Bustling, non-tourist, great transit hub.",tags:["neighbourhood","stay","transit","local"],day:"Day 1-2"},
+  {n:"Bibiang Fragrances",c:"Shopping",lat:37.5500,lng:126.9220,area:"Hongdae Seoul",d:"Korean niche fragrance. Colline, Gureum, Rondo24 — Rondo24 is a repeat-buy. @bibiang_official",tags:["fragrance","rondo24","korean"],day:"Day 5-6"},
+  {n:"Gentle Monster Flagship",c:"Shopping",lat:37.5215,lng:127.0266,area:"Apgujeong Seoul",d:"Multi-storey Gentle Monster concept store. Art installation + eyewear experience.",tags:["gentlemonster","flagship","art","eyewear"],day:"Flexible"},
+  {n:"GOTO Mall Hongdae (고투몰)",c:"Shopping",lat:37.5563,lng:126.9236,area:"Hongdae Seoul",d:"Underground mall beneath Hongdae. Affordable fashion, open late.",tags:["underground","mall","hongdae","affordable"],day:"Day 3-4"},
+  {n:"Hyundai Seoul Department Store",c:"Shopping",lat:37.5261,lng:126.9269,area:"Yeouido Seoul",d:"Curated Korean brands. Less touristy than Myeongdong stores.",tags:["department store","yeouido","local brands"],day:"Day 6"},
+  {n:"Tamburins Seongsu",c:"Shopping",lat:37.5448,lng:127.0566,area:"Seongsu Seoul",d:"Korean fragrance + beauty brand. 📍316-7 Seongsu-dong 2-ga Seongdong-gu Seoul",tags:["tamburins","fragrance","seongsu"],day:"Flexible"},
+  {n:"Elorea",c:"Shopping",lat:37.5335,lng:127.0013,area:"Hannam Seoul",d:"Korean niche fragrance. 📍737-1 Hannam-dong Yongsan-gu Seoul",tags:["fragrance","hannam"],day:"Day 5-6"},
+  {n:"Youssoful Hannam",c:"Shopping",lat:37.5340,lng:127.0025,area:"Hannam Seoul",d:"Korean niche fragrance boutique. 📍744-4 Hannam-dong Yongsan-gu Seoul",tags:["fragrance","hannam"],day:"Day 5-6"},
+  {n:"Cosmic Mansion",c:"Shopping",lat:37.5793,lng:126.9745,area:"Jongno Seoul",d:"Korean niche fragrance. 📍153-1 Changseong-dong Jongno-gu Seoul",tags:["fragrance","jongno"],day:"Day 2"},
+  {n:"Nonfiction Seongsu",c:"Shopping",lat:37.5440,lng:127.0555,area:"Seongsu Seoul",d:"Korean niche fragrance. 📍16-33 Seongsu-dong 1-ga Seongdong-gu Seoul",tags:["fragrance","seongsu"],day:"Day 5-6"},
+  {n:"COMPILE",c:"Culture",lat:37.5578,lng:126.9211,area:"Hongdae Seoul",d:"Nightlife venue. @01compile",tags:["bar","nightlife","hongdae"],day:"Evenings"},
+  {n:"ZuhZuh (저저)",c:"Culture",lat:37.5560,lng:126.9198,area:"Hongdae Seoul",d:"Bar/nightlife. @zuhzuh.kr",tags:["bar","nightlife","hongdae"],day:"Evenings"},
+  {n:"라스트춘선 홍대",c:"Culture",lat:37.5555,lng:126.9205,area:"Hongdae Seoul",d:"Bar in Hongdae. @lastchunsun_hongdae",tags:["bar","nightlife","hongdae"],day:"Day 4 (night)"},
+  {n:"Bar Eum",c:"Culture",lat:37.5560,lng:126.9215,area:"Hongdae Seoul",d:"Bar/music venue. @ongroundmusicbar",tags:["bar","music","nightlife"],day:"Evenings"},
+  {n:"HIGHWAY Men's Hair",c:"Skincare",lat:37.5558,lng:126.9222,area:"Hongdae Seoul",d:"Men's hair salon. @highway_menshair",tags:["hair","salon","men","hongdae"],day:"Flexible"},
+  {n:"Buramsan Mountain (불암산)",c:"DayTrip",lat:37.6580,lng:127.0980,area:"Nowon Seoul",d:"Best sunset viewpoint in Seoul per a Korean local. 40min hike. 📍Deokneung-ro 94-gil 73. Transit: Sanggye Station Exit 1.",tags:["hiking","sunset","viewpoint","local","nature"],day:"Day 8"},
+  {n:"Body + Color Analysis",c:"Culture",lat:37.5260,lng:127.0280,area:"Gangnam Seoul",d:"Personal style analysis — body type, color season, what collar/cut suits you. Book via Gangnam stylists/clinics.",tags:["style","color analysis","body type","personal"],day:"Day 7-8"},
+];
+
+const CC={
+  Neighbourhood:{color:"#c4714a",r:11},
+  Shopping:     {color:"#7a6fab",r:7},
+  Skincare:     {color:"#6a9e7a",r:7},
+  Food:         {color:"#c49a3a",r:7},
+  Transport:    {color:"#4a7ea5",r:8},
+  Accommodation:{color:"#b05a7a",r:8},
+  Culture:      {color:"#8a6a3a",r:8},
+  DayTrip:      {color:"#7a8c9e",r:7},
+};
+
+const ZONES_KR=[
+  {lat:37.570,lng:126.978,r:600,color:"#c4714a",label:"Jongno"},
+  {lat:37.563,lng:126.986,r:500,color:"#c49a3a",label:"Myeongdong"},
+  {lat:37.556,lng:126.924,r:750,color:"#7a6fab",label:"Hongdae"},
+  {lat:37.545,lng:127.056,r:600,color:"#6a9e7a",label:"Seongsu"},
+  {lat:37.534,lng:126.994,r:650,color:"#b05a7a",label:"Hannam"},
+  {lat:37.498,lng:127.028,r:750,color:"#4a7ea5",label:"Gangnam"},
+];
+
+// ── OTHER COUNTRIES (populate as reels are processed) ───────────────────
+const P_JP=[];
+const P_TW=[];
+const P_KG=[];
+const ZONES_JP=[];
+const ZONES_TW=[];
+const ZONES_KG=[];
+
+// Generic day options for countries without a built itinerary yet
+const GENERIC_DAYS = [
+  {v:"Day 1",l:"Day 1"},{v:"Day 2",l:"Day 2"},{v:"Day 3",l:"Day 3"},
+  {v:"Day 4",l:"Day 4"},{v:"Day 5",l:"Day 5"},{v:"Day 6",l:"Day 6"},
+  {v:"Day 7",l:"Day 7"},{v:"Day 8",l:"Day 8"},{v:"Day 9",l:"Day 9"},
+  {v:"Day 10",l:"Day 10"},{v:"Day 11",l:"Day 11"},{v:"Day 12",l:"Day 12"},
+  {v:"Day 13",l:"Day 13"},{v:"Day 14",l:"Day 14"},
+  {v:"Evenings",l:"Evenings"},{v:"Flexible",l:"Flexible"}
+];
+
+const KOREA_DAYS = [
+  {v:"Day 1",l:"Day 1 — Arrival"},
+  {v:"Day 1-2",l:"Day 1-2 — Myeongdong / Jongno"},
+  {v:"Day 2",l:"Day 2 — Jongno"},
+  {v:"Day 2-3",l:"Day 2-3 — Culture"},
+  {v:"Day 3",l:"Day 3 — Hongdae"},
+  {v:"Day 3-4",l:"Day 3-4 — Hongdae area"},
+  {v:"Day 4 (night)",l:"Day 4 night — Nightlife"},
+  {v:"Day 5",l:"Day 5 — Seongsu"},
+  {v:"Day 5-6",l:"Day 5-6 — Seongsu / Hannam"},
+  {v:"Day 6",l:"Day 6 — Yeouido"},
+  {v:"Day 7",l:"Day 7 — Gangnam Clinics"},
+  {v:"Day 7-8",l:"Day 7-8 — Gangnam"},
+  {v:"Day 8",l:"Day 8 — Buramsan"},
+  {v:"Day 9",l:"Day 9 — Jongno Markets"},
+  {v:"Day 9 (day trip)",l:"Day 9 — Day Trip"},
+  {v:"Day 10",l:"Day 10 — Sokcho"},
+  {v:"Day 10-11",l:"Day 10-11 — Busan"},
+  {v:"Day 10 (day trip)",l:"Day 10 — Day Trip"},
+  {v:"Day 11",l:"Day 11 — Gangneung"},
+  {v:"Day 12-13",l:"Day 12-13 — Gyeongju / Jeju"},
+  {v:"Day 13",l:"Day 13"},
+  {v:"Day 14",l:"Day 14 — Wrap Up"},
+  {v:"Evenings",l:"Evenings"},
+  {v:"Flexible",l:"Flexible"}
+];
+
+// ── HOUSING ZONES PER COUNTRY (sidebar shortcuts) ────────────────────────
+const HOUSING_KR = [
+  {label:"Jongno / Insadong",  sub:"Historic · Transit hub",        color:"#c87048", lat:37.570, lng:126.978, zoom:14},
+  {label:"Hongdae / Yeonam ★", sub:"Young · Local · Top pick",       color:"#7a6aaa", lat:37.556, lng:126.924, zoom:14},
+  {label:"Seongsu ★",          sub:"Coolest · Creative",             color:"#5a8a6a", lat:37.545, lng:127.056, zoom:14},
+  {label:"Itaewon / Hannam",   sub:"Expat-friendly · Upscale",       color:"#a86a88", lat:37.534, lng:126.994, zoom:14},
+  {label:"Gangnam / Apgujeong",sub:"Premium · Clinics",              color:"#4a7a9a", lat:37.498, lng:127.028, zoom:14},
+];
+const HOUSING_JP=[];
+const HOUSING_TW=[];
+const HOUSING_KG=[];
+
+// ── COUNTRY REGISTRY ──────────────────────────────────────────────────────
+// viewbox format: left,top,right,bottom (lon,lat,lon,lat) — used to bias Nominatim search
+const COUNTRIES = {
+  kr: { label:"Korea",      flag:"🇰🇷", center:[37.552,126.992], zoom:12, P:P_KR, ZONES:ZONES_KR, days:KOREA_DAYS,   housing:HOUSING_KR, cc:"kr", viewbox:"124.5,38.7,131.0,33.0" },
+  jp: { label:"Japan",      flag:"🇯🇵", center:[35.682,139.759], zoom:11, P:P_JP, ZONES:ZONES_JP, days:GENERIC_DAYS, housing:HOUSING_JP, cc:"jp", viewbox:"129.0,46.0,146.0,30.0" },
+  tw: { label:"Taiwan",     flag:"🇹🇼", center:[25.033,121.565], zoom:11, P:P_TW, ZONES:ZONES_TW, days:GENERIC_DAYS, housing:HOUSING_TW, cc:"tw", viewbox:"119.0,25.5,122.5,21.5" },
+  kg: { label:"Kyrgyzstan", flag:"🇰🇬", center:[42.875,74.570],  zoom:7,  P:P_KG, ZONES:ZONES_KG, days:GENERIC_DAYS, housing:HOUSING_KG, cc:"kg", viewbox:"69.0,43.5,80.5,39.0" },
+};
+let currentCountry = 'kr';
+let P = COUNTRIES[currentCountry].P;
+let ZONES = COUNTRIES[currentCountry].ZONES;
+
+
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+(function init() {
+  if (typeof L === 'undefined') { setTimeout(init, 50); return; }
+
+  // Map
+  const map = L.map('map', { zoomControl: true, preferCanvas: true })
+    .setView([37.552, 126.992], 12);
+  window._map = map;
+
+  const darkTile = 'https://{s}.basemaps.cartocdn.com/dark_matter/{z}/{x}/{y}{r}.png';
+  const lightTile = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  let tileLayer = L.tileLayer(lightTile, {
+    attribution: '&copy; OpenStreetMap &copy; CARTO',
+    subdomains: 'abcd', maxZoom: 19
+  }).addTo(map);
+  window._tileLayer = tileLayer;
+
+  // ── PIN-DROP MODE ──────────────────────────────────────────────────────
+  let pinMode = false;
+  let pinMarker = null;
+
+  function setPin(lat, lng, fly) {
+    pendingPin = { lat, lng };
+    if (pinMarker) map.removeLayer(pinMarker);
+    pinMarker = L.circleMarker([lat, lng], {
+      radius: 9, fillColor: '#c8724a', fillOpacity: 1, color: 'white', weight: 2
+    }).addTo(map);
+    document.getElementById('pin-status').classList.add('set');
+    document.getElementById('pin-status-text').textContent =
+      '📍 Pin set at ' + lat.toFixed(4) + ', ' + lng.toFixed(4);
+    document.getElementById('pin-btn').classList.remove('active');
+    document.getElementById('pin-btn').textContent = '📍 Move pin';
+    if (fly) map.flyTo([lat, lng], 15, { duration: 0.6 });
+  }
+  window._setPin = setPin;
+
+  map.on('click', (e) => {
+    if (!pinMode) return;
+    setPin(e.latlng.lat, e.latlng.lng, false);
+    pinMode = false;
+    document.getElementById('pin-hint').classList.remove('vis');
+    document.getElementById('modal-overlay').classList.add('vis');
+  });
+
+  window.togglePinMode = function() {
+    pinMode = true;
+    document.getElementById('modal-overlay').classList.remove('vis');
+    document.getElementById('pin-hint').classList.add('vis');
+  };
+
+  window.cancelPinMode = function() {
+    pinMode = false;
+    document.getElementById('pin-hint').classList.remove('vis');
+    document.getElementById('modal-overlay').classList.add('vis');
+  };
+
+  // ── LOCATION SEARCH (Nominatim / OpenStreetMap, free, no API key) ───────
+  window.searchLocation = async function() {
+    const q = document.getElementById('f-locsearch').value.trim();
+    const resultsEl = document.getElementById('loc-results');
+    if (!q) { resultsEl.innerHTML = ''; return; }
+    const btn = document.getElementById('locsearch-btn');
+    btn.disabled = true;
+    resultsEl.innerHTML = '<div class="loc-result">Searching…</div>';
+    try {
+      const cfg = COUNTRIES[currentCountry];
+      const url = 'https://nominatim.openstreetmap.org/search?format=json&limit=5&q=' + encodeURIComponent(q) +
+        '&countrycodes=' + cfg.cc + '&viewbox=' + cfg.viewbox + '&bounded=1';
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('search failed');
+      const results = await res.json();
+      if (!results.length) {
+        resultsEl.innerHTML = '<div class="loc-result">No results — try a different search, or drop a pin manually.</div>';
+        return;
+      }
+      resultsEl.innerHTML = results.map((r, i) =>
+        '<div class="loc-result" onclick="selectLocationResult(' + i + ')">' +
+        '<span class="lr-name">' + r.display_name.split(',')[0] + '</span>' +
+        '<span class="lr-type">' + (r.type || '') + '</span><br>' +
+        '<span style="color:var(--muted)">' + r.display_name + '</span></div>'
+      ).join('');
+      window._locResults = results;
+    } catch (e) {
+      resultsEl.innerHTML = '<div class="loc-result">Search unavailable right now — drop a pin manually instead.</div>';
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  window.selectLocationResult = function(i) {
+    const r = window._locResults[i];
+    setPin(parseFloat(r.lat), parseFloat(r.lon), true);
+    document.getElementById('loc-results').innerHTML = '';
+    document.getElementById('f-locsearch').value = '';
+    // Pre-fill name/area if empty
+    const nameEl = document.getElementById('f-name');
+    const areaEl = document.getElementById('f-area');
+    const parts = r.display_name.split(',').map(s => s.trim());
+    if (!nameEl.value) nameEl.value = parts[0];
+    if (!areaEl.value && parts.length > 1) areaEl.value = parts.slice(1, 3).join(', ');
+  };
+
+  // Allow Enter key to trigger search
+  document.getElementById('f-locsearch').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); searchLocation(); }
+  });
+
+  // ── COMMUNITY RECS: fetch from Supabase ──────────────────────────────────
+  async function loadCommunityRecs() {
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/korea_recs?select=*&country=eq.' + currentCountry + '&order=created_at.desc', {
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }
+      });
+      if (!res.ok) throw new Error('fetch failed: ' + res.status);
+      const rows = await res.json();
+      communityRecs = rows.map(r => ({
+        n: r.name, c: r.category, lat: r.lat, lng: r.lng, area: r.area,
+        d: r.description, tags: r.tags || [], day: r.day || 'Flexible',
+        contributor: r.contributor, source_url: r.source_url, isCommunity: true,
+        _id: r.id
+      }));
+      buildMarkers(); renderList();
+      if (typeof window._renderAreaOptions === 'function') window._renderAreaOptions();
+      if (typeof window._renderListMobile === 'function') window._renderListMobile();
+    } catch (e) {
+      console.warn('Could not load community recs:', e);
+    }
+  }
+
+  // ── SUBMIT NEW REC ────────────────────────────────────────────────────
+  window.submitRec = async function() {
+    const name = document.getElementById('f-name').value.trim();
+    const contributor = document.getElementById('f-contributor').value.trim();
+    const category = document.getElementById('f-category').value;
+    const area = document.getElementById('f-area').value.trim();
+    const desc = document.getElementById('f-desc').value.trim();
+    const day = document.getElementById('f-day').value;
+    const tagsRaw = document.getElementById('f-tags').value.trim();
+    const source = document.getElementById('f-source').value.trim();
+    const msg = document.getElementById('modal-msg');
+
+    if (!name || !contributor || !area || !desc || !pendingPin) {
+      msg.textContent = 'Please fill in your name, place name, area, description, and drop a pin on the map.';
+      msg.className = 'err';
+      return;
+    }
+
+    const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+    const payload = {
+      country: currentCountry,
+      name, category, area, description: desc, tags, day,
+      lat: pendingPin.lat, lng: pendingPin.lng,
+      contributor, source_url: source || null
+    };
+
+    const btn = document.getElementById('submit-rec');
+    btn.disabled = true;
+    msg.textContent = 'Adding...';
+    msg.className = '';
+
+    try {
+      const res = await fetch(SUPABASE_URL + '/rest/v1/korea_recs', {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY,
+          'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('insert failed: ' + res.status);
+      msg.textContent = '✓ Added! Thanks, ' + contributor + '.';
+      msg.className = 'ok';
+      await loadCommunityRecs();
+      setTimeout(() => closeSuggestModal(), 1200);
+    } catch (e) {
+      msg.textContent = 'Something went wrong — please try again.';
+      msg.className = 'err';
+    } finally {
+      btn.disabled = false;
+    }
+  };
+
+  window.openSuggestModal = function() {
+    document.getElementById('modal-country').textContent = COUNTRIES[currentCountry].flag + ' ' + COUNTRIES[currentCountry].label;
+    document.getElementById('modal-overlay').classList.add('vis');
+  };
+  window.closeSuggestModal = function() {
+    document.getElementById('modal-overlay').classList.remove('vis');
+    // reset form
+    ['f-name','f-area','f-desc','f-tags','f-source','f-locsearch'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('loc-results').innerHTML = '';
+    document.getElementById('modal-msg').textContent = '';
+    document.getElementById('modal-msg').className = '';
+    if (pinMarker) { map.removeLayer(pinMarker); pinMarker = null; }
+    pendingPin = null;
+    pinMode = false;
+    document.getElementById('pin-btn').classList.remove('active');
+    document.getElementById('pin-btn').textContent = '📍 Drop pin';
+    document.getElementById('pin-status').classList.remove('set');
+    document.getElementById('pin-status-text').textContent = 'Click "Drop pin" then click the map to set this place\'s location';
+  };
+
+  setTimeout(() => map.invalidateSize(), 100);
+  setTimeout(() => map.invalidateSize(), 500);
+  setTimeout(() => map.invalidateSize(), 1200);
+  window.addEventListener('resize', () => map.invalidateSize());
+
+  // Zone circles
+  const ZONE_COLORS = {
+    'Jongno/Insadong': '#c87048', 'Hongdae/Yeonam': '#7a6aaa',
+    'Seongsu': '#5a8a6a', 'Itaewon/Hannam': '#a86a88',
+    'Gangnam': '#4a7a9a', 'Myeongdong': '#b8974a'
+  };
+  let zoneCircles = ZONES.map(z => L.circle([z.lat, z.lng], {
+    radius: z.r, color: z.color, fillColor: z.color,
+    fillOpacity: 0.08, weight: 1.5, opacity: 0.4, dashArray: '5 4', interactive: false
+  }));
+  let zonesVisible = false;
+  function toggleZones(on) {
+    zonesVisible = on;
+    zoneCircles.forEach(c => on ? c.addTo(map) : map.removeLayer(c));
+  }
+  function rebuildZoneCircles() {
+    zoneCircles.forEach(c => map.removeLayer(c));
+    zoneCircles = ZONES.map(z => L.circle([z.lat, z.lng], {
+      radius: z.r, color: z.color, fillColor: z.color,
+      fillOpacity: 0.08, weight: 1.5, opacity: 0.4, dashArray: '5 4', interactive: false
+    }));
+    if (zonesVisible) zoneCircles.forEach(c => c.addTo(map));
+  }
+
+  // State
+  let activeFilters = new Set(Object.keys(CC));
+  window._activeFilters = activeFilters;
+  let activeDayFilter = '';
+  let activeAreaFilter = '';
+  let markers = [];
+  let selectedM = null;
+  let routeList = [];
+  let routeLine = null;
+  let currentP = null;
+  let tooltip = null;
+
+  // ── MARKERS ────────────────────────────────────────────────────────────
+  function allPlaces() { return P.concat(communityRecs); }
+
+  function buildMarkers() {
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+    const q = document.getElementById('q').value.toLowerCase();
+    let n = 0;
+    allPlaces().forEach((p, i) => {
+      if (!activeFilters.has(p.c)) return;
+      if (activeDayFilter && p.day !== activeDayFilter) return;
+      if (activeAreaFilter && p.area !== activeAreaFilter) return;
+      if (q && !p.n.toLowerCase().includes(q) && !p.area.toLowerCase().includes(q)
+             && !p.d.toLowerCase().includes(q) && !p.tags.some(t => t.includes(q))) return;
+      const cfg = CC[p.c] || { color: '#888', r: 7 };
+      const m = L.circleMarker([p.lat, p.lng], {
+        radius: cfg.r, fillColor: cfg.color, fillOpacity: 0.85,
+        color: p.isCommunity ? '#b8974a' : 'rgba(255,255,255,0.15)',
+        weight: p.isCommunity ? 2.5 : 1.5,
+        dashArray: p.isCommunity ? '2 2' : null
+      }).addTo(map);
+      m._p = p; m._i = i;
+      m.on('click', () => { selectM(m); openInfo(p, i); });
+      m.on('mouseover', function () {
+        if (this !== selectedM) this.setStyle({ fillOpacity: 1, weight: 2.5, color: 'white', radius: cfg.r + 2 });
+        showTip(p, this);
+      });
+      m.on('mouseout', function () {
+        if (this !== selectedM) this.setStyle({ fillOpacity: 0.85, weight: p.isCommunity ? 2.5 : 1.5, color: p.isCommunity ? '#b8974a' : 'rgba(255,255,255,0.15)', radius: cfg.r, dashArray: p.isCommunity ? '2 2' : null });
+        hideTip();
+      });
+      markers.push(m);
+      n++;
+    });
+    document.getElementById('hcount').textContent = n + ' places';
+  }
+
+  function selectM(m) {
+    if (selectedM && selectedM !== m) {
+      const c2 = CC[selectedM._p.c] || { color: '#888', r: 7 };
+      const isC = selectedM._p.isCommunity;
+      selectedM.setStyle({ fillOpacity: 0.85, weight: isC ? 2.5 : 1.5, color: isC ? '#b8974a' : 'rgba(255,255,255,0.15)', radius: c2.r, dashArray: isC ? '2 2' : null });
+    }
+    selectedM = m;
+    const cfg = CC[m._p.c] || { color: '#888', r: 7 };
+    m.setStyle({ fillOpacity: 1, weight: 2.5, color: 'white', radius: cfg.r + 3, dashArray: null });
+  }
+
+  // ── TOOLTIP ────────────────────────────────────────────────────────────
+  function showTip(p, m) {
+    hideTip();
+    const cfg = CC[p.c] || { color: '#888' };
+    tooltip = L.popup({ closeButton: false, className: 'map-tooltip', offset: [0, -8], autoPan: false })
+      .setLatLng(m.getLatLng())
+      .setContent('<div style="font-family:DM Sans,sans-serif"><div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:' + cfg.color + ';font-family:DM Mono,monospace;margin-bottom:2px">' + p.c + '</div><div style="font-family:DM Serif Display,serif;font-size:14px;font-weight:700;color:#f2f2f7;line-height:1.2">' + p.n + '</div><div style="font-size:10px;color:#636366;margin-top:2px">' + p.area + '</div></div>')
+      .openOn(map);
+  }
+  function hideTip() { if (tooltip) { map.closePopup(tooltip); tooltip = null; } }
+
+  // ── INFO PANEL ─────────────────────────────────────────────────────────
+  window._openInfoMobile = function(p, i) { openInfo(p, i); };
+  function openInfo(p, i) {
+    currentP = p;
+    const cfg = CC[p.c] || { color: '#888' };
+    document.getElementById('icat').textContent = p.c;
+    document.getElementById('icat').style.color = cfg.color;
+    document.getElementById('iname').textContent = p.n;
+    document.getElementById('idesc').textContent = p.d;
+    document.getElementById('itags').innerHTML = p.tags.map(t => '<span class="itag">' + t + '</span>').join('');
+    const dayEl = document.getElementById('iday');
+    if (p.day) { dayEl.textContent = '📅 ' + p.day; dayEl.style.display = 'block'; }
+    else { dayEl.style.display = 'none'; }
+    const igHandle = p.d.match(/@([\w.]+)/)?.[1];
+    const igEl = document.getElementById('iig');
+    if (igHandle) { igEl.href = 'https://www.instagram.com/' + igHandle + '/'; igEl.style.display = 'inline'; }
+    else { igEl.style.display = 'none'; }
+    document.getElementById('inaver').href = 'https://map.naver.com/v5/search/' + encodeURIComponent(p.n);
+    const inRoute = routeList.some(r => r.n === p.n);
+    const rb = document.getElementById('iroute');
+    rb.textContent = inRoute ? '✓ In Plan' : '+ Day Plan';
+    rb.style.background = inRoute ? '#5a8a6a' : null;
+    rb.onclick = () => toggleRoute(p);
+
+    // Contributor badge for community recs
+    let contribEl = document.getElementById('icontrib');
+    if (!contribEl) {
+      contribEl = document.createElement('div');
+      contribEl.id = 'icontrib';
+      contribEl.className = 'icontrib';
+      document.getElementById('iday').insertAdjacentElement('afterend', contribEl);
+    }
+    if (p.isCommunity) {
+      contribEl.style.display = 'flex';
+      contribEl.innerHTML = '✨ Added by ' + p.contributor + (p.source_url ? ' · <a href="' + p.source_url + '" target="_blank" style="color:inherit">source</a>' : '');
+    } else {
+      contribEl.style.display = 'none';
+    }
+
+    document.getElementById('info').classList.add('vis');
+    if(isMobile()) { document.getElementById('sheet-places').classList.remove('open'); }
+    document.querySelectorAll('.pi').forEach(el => el.classList.remove('sel'));
+    const li = document.querySelector('[data-i="' + i + '"]');
+    if (li) { li.classList.add('sel'); li.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  }
+
+  window.closeInfo = function () {
+    document.getElementById('info').classList.remove('vis');
+    document.querySelectorAll('.pi').forEach(el => el.classList.remove('sel'));
+    if (selectedM) {
+      const cfg = CC[selectedM._p?.c] || { color: '#888', r: 7 };
+      const isC = selectedM._p?.isCommunity;
+      selectedM.setStyle({ fillOpacity: 0.85, weight: isC ? 2.5 : 1.5, color: isC ? '#b8974a' : 'rgba(255,255,255,0.15)', radius: cfg.r, dashArray: isC ? '2 2' : null });
+      selectedM = null;
+    }
+    currentP = null;
+  };
+
+  // ── ROUTE ──────────────────────────────────────────────────────────────
+  function toggleRoute(p) {
+    const idx = routeList.findIndex(r => r.n === p.n);
+    if (idx >= 0) routeList.splice(idx, 1); else routeList.push(p);
+    updateRouteLine();
+    renderRoute();
+    if (currentP && currentP.n === p.n) openInfo(p, allPlaces().indexOf(p));
+  }
+  function updateRouteLine() {
+    if (routeLine) { map.removeLayer(routeLine); routeLine = null; }
+    if (routeList.length >= 2) {
+      routeLine = L.polyline(routeList.map(p => [p.lat, p.lng]),
+        { color: '#c8724a', weight: 1.5, opacity: 0.5, dashArray: '5 3' }).addTo(map);
+    }
+  }
+  function renderRoute() {
+    const rp = document.getElementById('rp');
+    document.getElementById('rcount').textContent = routeList.length;
+    if (!routeList.length) { rp.classList.remove('vis'); return; }
+    rp.classList.add('vis');
+    const byDay = {};
+    routeList.forEach((p, i) => { const d = p.day || 'Flexible'; (byDay[d] = byDay[d] || []).push({ p, i }); });
+    const order = COUNTRIES[currentCountry].days.map(d => d.v);
+    const sorted = Object.keys(byDay).sort((a, b) => (order.indexOf(a) + 1 || 99) - (order.indexOf(b) + 1 || 99));
+    document.getElementById('rlist').innerHTML = sorted.map(day =>
+      '<div class="rdl">' + day + '</div>' + byDay[day].map(({ p, i }) =>
+        '<div class="ri" onclick="focusP(' + allPlaces().indexOf(p) + ')">' +
+        '<span class="rn">' + (i + 1) + '</span>' +
+        '<span class="rnm">' + p.n + '</span>' +
+        '<span class="rmt">' + p.c + '</span>' +
+        '<button class="rdel" onclick="event.stopPropagation();removeRoute(' + allPlaces().indexOf(p) + ')">×</button></div>'
+      ).join('')
+    ).join('');
+  }
+
+  window.removeRoute = p => { const ap = allPlaces(); routeList = routeList.filter(r => r.n !== ap[p].n); updateRouteLine(); renderRoute(); };
+  window.clearRoute = () => { routeList = []; updateRouteLine(); renderRoute(); };
+  window.fitRoute = () => { if (routeList.length) map.fitBounds(L.latLngBounds(routeList.map(p => [p.lat, p.lng])), { padding: [50, 50] }); };
+  window.focusP = i => {
+    const p = allPlaces()[i];
+    map.flyTo([p.lat, p.lng], 15, { duration: 0.8 });
+    setTimeout(() => { const m = markers.find(m => m._i === i); if (m) { selectM(m); openInfo(p, i); } }, 700);
+  };
+
+  // ── SIDEBAR LIST ───────────────────────────────────────────────────────
+  function renderList() {
+    const el = document.getElementById('plist');
+    el.innerHTML = '';
+    const q = document.getElementById('q').value.toLowerCase();
+    if (allPlaces().length === 0) {
+      el.innerHTML = '<div class="empty-state">No places yet for ' + COUNTRIES[currentCountry].label + '.<br>Tap <strong>+ Suggest a place</strong> to add the first one.</div>';
+      return;
+    }
+    let shown = 0;
+    allPlaces().forEach((p, i) => {
+      if (!activeFilters.has(p.c)) return;
+      if (activeDayFilter && p.day !== activeDayFilter) return;
+      if (activeAreaFilter && p.area !== activeAreaFilter) return;
+      if (q && !p.n.toLowerCase().includes(q) && !p.area.toLowerCase().includes(q)
+              && !p.d.toLowerCase().includes(q) && !p.tags.some(t => t.includes(q))) return;
+      shown++;
+      const cfg = CC[p.c] || { color: '#888' };
+      const inRoute = routeList.some(r => r.n === p.n);
+      const div = document.createElement('div');
+      div.className = 'pi';
+      div.setAttribute('data-i', i);
+      div.innerHTML = '<div class="pd" style="background:' + cfg.color + (p.isCommunity ? ';outline:1.5px dashed #b8974a;outline-offset:1px' : '') + '"></div>' +
+        '<div style="min-width:0"><div class="pn">' + p.n + (inRoute ? '<span class="rb">✓</span>' : '') + (p.isCommunity ? '<span class="rb" style="background:rgba(184,151,74,.12);color:#b8974a;border-color:rgba(184,151,74,.25)">✨ ' + p.contributor + '</span>' : '') + '</div>' +
+        '<div class="pm">' + p.area + ' · ' + p.c + '</div></div>';
+      div.onclick = () => {
+        map.flyTo([p.lat, p.lng], 15, { duration: 0.8 });
+        setTimeout(() => { const m = markers.find(m => m._i === i); if (m) selectM(m); openInfo(p, i); }, 600);
+      };
+      el.appendChild(div);
+    });
+    if (shown === 0) {
+      el.innerHTML = '<div class="empty-state">No places match this filter.</div>';
+    }
+  }
+
+  // ── PILLS ──────────────────────────────────────────────────────────────
+  const pillEl = document.getElementById('pills');
+  Object.keys(CC).forEach(cat => {
+    const cfg = CC[cat];
+    const div = document.createElement('div');
+    div.className = 'pill on';
+    div.textContent = cat === 'DayTrip' ? 'Day Trip' : cat;
+    div.onclick = () => {
+      if (activeFilters.has(cat)) { activeFilters.delete(cat); div.classList.remove('on'); }
+      else { activeFilters.add(cat); div.classList.add('on'); }
+      const mLabel = cat === 'DayTrip' ? 'Day Trip' : cat;
+      const mobileEl = document.getElementById('pills-m');
+      if (mobileEl) Array.from(mobileEl.children).forEach(mp => {
+        if (mp.textContent === mLabel) mp.classList.toggle('on', activeFilters.has(cat));
+      });
+      buildMarkers(); renderList();
+    };
+    pillEl.appendChild(div);
+  });
+
+  // ── EVENTS ────────────────────────────────────────────────────────────
+  document.getElementById('q').addEventListener('input', () => { buildMarkers(); renderList(); });
+  document.getElementById('daysel').addEventListener('change', e => { activeDayFilter = e.target.value; buildMarkers(); renderList(); });
+  document.getElementById('areasel').addEventListener('change', e => { activeAreaFilter = e.target.value; buildMarkers(); renderList(); if (window._renderListMobile) window._renderListMobile(); });
+  map.on('click', () => hideTip());
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeInfo(); hideTip(); closeSuggestModal(); }
+    if (e.key === '/' && !document.getElementById('modal-overlay').classList.contains('vis')) {
+      e.preventDefault(); document.getElementById('q').focus();
+    }
+  });
+  document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target.id === 'modal-overlay') closeSuggestModal();
+  });
+
+  // ── GLOBAL HELPERS ────────────────────────────────────────────────────
+  window.setView = v => {
+    const on = v === 'zones';
+    toggleZones(on);
+    document.getElementById('bAll').classList.toggle('on', !on);
+    document.getElementById('bZone').classList.toggle('on', on);
+  };
+  window.fly = (lat, lng, z) => map.flyTo([lat, lng], z, { duration: 0.8 });
+  window.resetView = () => {
+    const cfg = COUNTRIES[currentCountry];
+    map.flyTo(cfg.center, cfg.zoom, { duration: 0.8 });
+  };
+
+  // ── DAY OPTIONS ────────────────────────────────────────────────────────
+  function renderDayOptions() {
+    const days = COUNTRIES[currentCountry].days;
+    const opts = '<option value="">All days</option>' +
+      days.map(d => '<option value="' + d.v + '">' + d.l + '</option>').join('');
+    const d1 = document.getElementById('daysel');
+    const d2 = document.getElementById('daysel-m');
+    if (d1) { d1.innerHTML = opts; d1.value = ''; }
+    if (d2) { d2.innerHTML = opts; d2.value = ''; }
+  }
+
+  // ── AREA / NEIGHBOURHOOD OPTIONS ─────────────────────────────────────────
+  function renderAreaOptions() {
+    const areas = Array.from(new Set(allPlaces().map(p => p.area))).sort();
+    const opts = '<option value="">All neighbourhoods</option>' +
+      areas.map(a => '<option value="' + a + '">' + a + '</option>').join('');
+    const a1 = document.getElementById('areasel');
+    const a2 = document.getElementById('areasel-m');
+    if (a1) { a1.innerHTML = opts; a1.value = activeAreaFilter; }
+    if (a2) { a2.innerHTML = opts; a2.value = activeAreaFilter; }
+  }
+  window._renderAreaOptions = renderAreaOptions;
+
+  // ── HOUSING ZONES ──────────────────────────────────────────────────────
+  function renderHousingZones() {
+    const housing = COUNTRIES[currentCountry].housing;
+    const desktopSection = document.getElementById('housing-section');
+    const mobileSection = document.getElementById('housing-section-m');
+    const desktopList = document.getElementById('housing-list');
+    const mobileList = document.getElementById('housing-list-m');
+    const show = housing.length > 0;
+    if (desktopSection) desktopSection.style.display = show ? '' : 'none';
+    if (mobileSection) mobileSection.style.display = show ? '' : 'none';
+    if (!show) return;
+    const rowsHtml = (closeTab) => housing.map(h =>
+      '<div class="zone-row" onclick="fly(' + h.lat + ',' + h.lng + ',' + h.zoom + ')' + (closeTab ? ";showTab('map')" : '') + '">' +
+      '<div class="zd" style="background:' + h.color + '"></div>' +
+      '<div><div class="zn">' + h.label + '</div><div class="zs">' + h.sub + '</div></div></div>'
+    ).join('');
+    if (desktopList) desktopList.innerHTML = rowsHtml(false);
+    if (mobileList) mobileList.innerHTML = rowsHtml(true);
+  }
+
+  // ── COUNTRY SWITCHING ────────────────────────────────────────────────────
+  window.toggleCountryMenu = function () {
+    document.getElementById('country-menu').classList.toggle('vis');
+  };
+
+  window.switchCountry = function (code) {
+    if (!COUNTRIES[code]) return;
+    currentCountry = code;
+    P = COUNTRIES[code].P;
+    ZONES = COUNTRIES[code].ZONES;
+
+    // Update header
+    document.getElementById('cflag').textContent = COUNTRIES[code].flag;
+    document.getElementById('cname').textContent = COUNTRIES[code].label;
+    document.getElementById('hpill').textContent = P.length + ' places';
+    document.querySelectorAll('.cm-item').forEach(el => el.classList.toggle('active', el.dataset.c === code));
+    document.getElementById('country-menu').classList.remove('vis');
+
+    // Reset transient state
+    activeDayFilter = '';
+    activeAreaFilter = '';
+    document.getElementById('q').value = '';
+    if (document.getElementById('qm')) document.getElementById('qm').value = '';
+    closeInfo();
+    hideTip();
+    routeList = [];
+    updateRouteLine();
+    renderRoute();
+
+    // Rebuild zones, day filter, area filter, housing shortcuts
+    rebuildZoneCircles();
+    renderDayOptions();
+    renderAreaOptions();
+    renderHousingZones();
+
+    // Recenter map
+    map.flyTo(COUNTRIES[code].center, COUNTRIES[code].zoom, { duration: 0.9 });
+
+    // Rebuild markers + lists
+    buildMarkers();
+    renderList();
+    if (typeof window._renderListMobile === 'function') window._renderListMobile();
+
+    // Reload community recs scoped to this country
+    loadCommunityRecs();
+  };
+
+  // Close country dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const sel = document.getElementById('country-sel');
+    if (sel && !sel.contains(e.target)) {
+      document.getElementById('country-menu').classList.remove('vis');
+    }
+  });
+
+  // ── THEME TOGGLE ───────────────────────────────────────────────────────
+  let isDark = false;
+  window.toggleTheme = function () {
+    isDark = !isDark;
+    document.getElementById('theme-btn').textContent = isDark ? '☀ Light' : '🌙 Dark';
+    const root = document.documentElement.style;
+    if (isDark) {
+      root.setProperty('--bg', '#1c1c1e'); root.setProperty('--bg2', '#232325');
+      root.setProperty('--bg3', '#2c2c2e'); root.setProperty('--bg4', '#363638');
+      root.setProperty('--line', '#38383a'); root.setProperty('--muted', '#636366');
+      root.setProperty('--mid', '#98989d'); root.setProperty('--text', '#d1d1d6');
+      root.setProperty('--hi', '#f2f2f7');
+      document.body.style.background = '#1c1c1e';
+      window._tileLayer.setUrl(darkTile);
+    } else {
+      root.setProperty('--bg', '#faf6f0'); root.setProperty('--bg2', '#f3ede3');
+      root.setProperty('--bg3', '#ece4d6'); root.setProperty('--bg4', '#e0d4c4');
+      root.setProperty('--line', '#ddd0bc'); root.setProperty('--muted', '#b0a59c');
+      root.setProperty('--mid', '#8a7c74'); root.setProperty('--text', '#5a4e47');
+      root.setProperty('--hi', '#2d2520');
+      document.body.style.background = '#faf6f0';
+      window._tileLayer.setUrl(lightTile);
+    }
+  };
+
+  // ── START ─────────────────────────────────────────────────────────────
+  document.querySelector('.cm-item[data-c="kr"]').classList.add('active');
+  document.getElementById('hpill').textContent = P.length + ' places';
+  renderDayOptions();
+  renderAreaOptions();
+  renderHousingZones();
+  buildMarkers();
+  renderList();
+  window._allPlaces = allPlaces;
+  window._renderDayOptions = renderDayOptions;
+  window._renderAreaOptions = renderAreaOptions;
+  window._renderHousingZones = renderHousingZones;
+  loadCommunityRecs();
+})();
+
+// ── MOBILE ───────────────────────────────────────────────────────────────
+const isMobile = () => window.innerWidth <= 768;
+
+window.showTab = function(tab) {
+  document.getElementById('sheet-places').classList.remove('open');
+  document.getElementById('sheet-filters').classList.remove('open');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  if (tab === 'places') {
+    document.getElementById('sheet-places').classList.add('open');
+    document.getElementById('tab-places').classList.add('active');
+    window._renderListMobile && window._renderListMobile();
+  } else if (tab === 'filters') {
+    document.getElementById('sheet-filters').classList.add('open');
+    document.getElementById('tab-filters').classList.add('active');
+  } else if (tab === 'plan') {
+    document.getElementById('tab-plan').classList.add('active');
+    const rp = document.getElementById('rp');
+    rp.classList.toggle('vis');
+  } else {
+    document.getElementById('tab-map').classList.add('active');
+  }
+};
+
+window.syncSearch = function(val) {
+  document.getElementById('q').value = val;
+  document.getElementById('q').dispatchEvent(new Event('input'));
+};
+
+window.syncDayFilter = function(val) {
+  document.getElementById('daysel').value = val;
+  document.getElementById('daysel').dispatchEvent(new Event('change'));
+  window._renderListMobile && window._renderListMobile();
+};
+
+window.syncAreaFilter = function(val) {
+  document.getElementById('areasel').value = val;
+  document.getElementById('areasel').dispatchEvent(new Event('change'));
+  window._renderListMobile && window._renderListMobile();
+};
+
+setTimeout(function() {
+  // Re-populate day filter + area filter + housing zones now that mobile sheet elements exist
+  if (window._renderDayOptions) window._renderDayOptions();
+  if (window._renderAreaOptions) window._renderAreaOptions();
+  if (window._renderHousingZones) window._renderHousingZones();
+
+  // Mobile place list
+  window._renderListMobile = function() {
+    var el = document.getElementById('plist-m');
+    if (!el) return;
+    el.innerHTML = '';
+    var q = (document.getElementById('qm') || {value:''}).value.toLowerCase();
+    var dayF = (document.getElementById('daysel-m') || {value:''}).value;
+    var areaF = (document.getElementById('areasel-m') || {value:''}).value;
+    var ap = (typeof allPlaces === 'function') ? allPlaces() : (window._allPlaces ? window._allPlaces() : P);
+    if (ap.length === 0) {
+      el.innerHTML = '<div class="empty-state">No places yet for ' + COUNTRIES[currentCountry].label + '.<br>Tap <strong>+ Suggest a place</strong> to add the first one.</div>';
+      return;
+    }
+    var shown = 0;
+    ap.forEach(function(p, i) {
+      if (window._activeFilters && !window._activeFilters.has(p.c)) return;
+      if (dayF && p.day !== dayF) return;
+      if (areaF && p.area !== areaF) return;
+      if (q && !p.n.toLowerCase().includes(q) && !p.area.toLowerCase().includes(q)
+              && !p.d.toLowerCase().includes(q) && !p.tags.some(function(t){return t.includes(q);})) return;
+      shown++;
+      var cfg = CC[p.c] || { color: '#888' };
+      var div = document.createElement('div');
+      div.className = 'pi';
+      div.innerHTML = '<div class="pd" style="background:' + cfg.color + '"></div>' +
+        '<div style="min-width:0"><div class="pn">' + p.n + (p.isCommunity ? '<span class="rb" style="background:rgba(184,151,74,.12);color:#b8974a;border-color:rgba(184,151,74,.25)">✨ ' + p.contributor + '</span>' : '') + '</div>' +
+        '<div class="pm">' + p.area + ' · ' + p.c + '</div></div>';
+      div.onclick = function() {
+        window._map.flyTo([p.lat, p.lng], 15, { duration: 0.8 });
+        window.showTab('map');
+        setTimeout(function() {
+          window._openInfoMobile && window._openInfoMobile(p, i);
+        }, 700);
+      };
+      el.appendChild(div);
+    });
+    if (shown === 0 && ap.length > 0) {
+      el.innerHTML = '<div class="empty-state">No places match this filter.</div>';
+    }
+  };
+
+  // Mobile pills
+  var pillsM = document.getElementById('pills-m');
+  if (pillsM) {
+    Object.keys(CC).forEach(function(cat) {
+      var div = document.createElement('div');
+      div.className = 'pill-m on';
+      div.textContent = cat === 'DayTrip' ? 'Day Trip' : cat;
+      div.onclick = function() {
+        div.classList.toggle('on');
+        var isOn = div.classList.contains('on');
+        if (window._activeFilters) {
+          if (isOn) window._activeFilters.add(cat);
+          else window._activeFilters.delete(cat);
+        }
+        // Mirror to desktop pill
+        var label = cat === 'DayTrip' ? 'Day Trip' : cat;
+        Array.from(document.querySelectorAll('#pills .pill')).forEach(function(dp) {
+          if (dp.textContent === label) dp.classList.toggle('on', isOn);
+        });
+        document.getElementById('q').dispatchEvent(new Event('input'));
+        window._renderListMobile();
+      };
+      pillsM.appendChild(div);
+    });
+  }
+}, 600);
+
+</script>
+
+<!-- ── MOBILE BOTTOM TAB BAR ── -->
+<div id="tab-bar">
+  <button class="tab-btn active" id="tab-map" onclick="showTab('map')">
+    <span class="ti">🗺</span>Map
+  </button>
+  <button class="tab-btn" id="tab-places" onclick="showTab('places')">
+    <span class="ti">📍</span>Places
+  </button>
+  <button class="tab-btn" id="tab-filters" onclick="showTab('filters')">
+    <span class="ti">🔍</span>Filter
+  </button>
+  <button class="tab-btn" id="tab-plan" onclick="showTab('plan')">
+    <span class="ti">📋</span>Plan
+  </button>
+</div>
+
+<!-- ── PLACES BOTTOM SHEET ── -->
+<div class="bsheet" id="sheet-places">
+  <div class="bsheet-handle"></div>
+  <div class="bsheet-title">
+    Places
+    <button class="bsheet-close" onclick="showTab('map')">✕</button>
+  </div>
+  <div class="bsheet-body">
+    <div class="ss">
+      <div class="srch">
+        <span class="si">⌕</span>
+        <input id="qm" type="text" placeholder="Search places…" oninput="syncSearch(this.value)">
+      </div>
+    </div>
+    <div id="plist-m"></div>
+  </div>
+</div>
+
+<!-- ── FILTERS BOTTOM SHEET ── -->
+<div class="bsheet" id="sheet-filters">
+  <div class="bsheet-handle"></div>
+  <div class="bsheet-title">
+    Filter
+    <button class="bsheet-close" onclick="showTab('map')">✕</button>
+  </div>
+  <div class="bsheet-body">
+    <div class="ss">
+      <div class="slbl">Filter by day</div>
+      <select id="daysel-m" onchange="syncDayFilter(this.value)"></select>
+    </div>
+    <div class="ss">
+      <div class="slbl">Filter by neighbourhood</div>
+      <select id="areasel-m" onchange="syncAreaFilter(this.value)"></select>
+    </div>
+    <div class="ss">
+      <div class="slbl">Type</div>
+      <div id="pills-m"></div>
+    </div>
+    <div class="ss" id="housing-section-m">
+      <div class="slbl">Housing zones</div>
+      <div id="housing-list-m"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
