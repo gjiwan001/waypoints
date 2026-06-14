@@ -745,21 +745,50 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 #resize-handle::after{content:'';width:28px;height:2px;background:var(--line);border-radius:1px;transition:background .15s;}
 #resize-handle:hover::after{background:var(--muted);}
 
-/* Tablet (481-768px): journal visible, no mobile chrome */
+/* Tablet (481-768px): panel visible, no mobile chrome */
 @media (max-width: 768px) {
   #pill-bar{height:auto;min-height:36px;padding:4px 8px;flex-wrap:wrap;overflow:visible;}
-  #mapwrap{flex:none !important;height:36vh !important;}
+  #mapwrap{flex:none !important;height:38vh !important;}
   .ja-grid{grid-template-columns:1fr;}
   #tab-bar{display:none !important;}
   #sheet-places,#sheet-filters{display:none !important;}
+  #resize-handle{display:none;}
 }
-/* Phone (≤480px): journal hidden, map fills, tab bar active */
+/* Phone (≤480px): panel below map, old tab bar gone */
 @media (max-width: 480px) {
-  #journal{display:none !important;}
-  #panel-bar{display:none !important;}
-  #mapwrap{flex:1 !important;height:auto !important;}
-  #tab-bar{display:flex !important;}
-  #sheet-places,#sheet-filters{display:flex !important;flex-direction:column;}
+  /* Info + route panels: no longer offset above a tab bar */
+  #info{bottom:0 !important;border-radius:14px 14px 0 0 !important;}
+  #rp{bottom:0 !important;border-radius:14px 14px 0 0 !important;}
+  /* Pill bar: horizontal scroll, no wrap, so it doesn't eat vertical space */
+  #pill-bar{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;height:36px;min-height:36px;}
+  #pill-bar-pills{flex-wrap:nowrap;flex-shrink:0;}
+  #srch-wrap{display:none;}/* hide search bar on mobile, search via map tap */
+  #mapwrap{flex:none !important;height:40vh !important;}
+  #journal{display:flex !important;flex-direction:column;}
+  #panel-bar{display:flex !important;height:40px;min-height:40px;}
+  #tab-bar{display:none !important;}
+  #sheet-places,#sheet-filters{display:none !important;}
+  #resize-handle{display:none;}
+  #hcount{display:none;}
+  /* Day tabs touch sizing */
+  .pdt{height:100%;padding:0 10px;font-size:9px;gap:4px;}
+  .pdt-prog{width:16px;}
+  .pdmb{padding:4px 10px;font-size:9px;}
+  /* Browse rows */
+  .pt-row{padding:9px 12px;min-height:44px;}
+  .pt-name{font-size:12px;}
+  .pt-check{width:28px;height:28px;border-radius:50%;}
+  .pt-area-hdr{padding:5px 12px 3px;}
+  /* Trip mode rows */
+  .tp-row{padding:12px 14px;}
+  .tp-check{width:36px;height:36px;font-size:14px;}
+  .tp-name{font-size:14px;}
+  .tp-act{font-size:10px;padding:5px 12px;}
+  .tp-progress{font-size:10px;}
+  /* Smooth scroll */
+  #journal{-webkit-overflow-scrolling:touch;}
+  /* Pill bar wraps nicely */
+  #pill-bar{padding:5px 8px;}
 }
 
 </style>
