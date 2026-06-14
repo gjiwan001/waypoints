@@ -323,6 +323,119 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 .tip-name{font-family:var(--disp);font-size:15px;font-style:italic;color:var(--hi);line-height:1.2;margin-bottom:2px;}
 .tip-area{font-size:9px;color:var(--muted);font-family:var(--ui);letter-spacing:.06em;}
 
+/* ── PANEL MODE BAR ── */
+#panel-bar{height:28px;min-height:28px;display:flex;align-items:center;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;overflow-y:hidden;}
+#panel-bar::-webkit-scrollbar{display:none;}
+.pmode{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;padding:0 10px;border:none;background:none;position:relative;height:100%;display:inline-flex;align-items:center;transition:color .15s;}
+.pmode::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:1.5px;background:var(--acc);transform:scaleX(0);transition:transform .2s cubic-bezier(.25,.46,.45,.94);}
+.pmode.on{color:var(--hi);}
+.pmode.on::after{transform:scaleX(1);}
+.pmode:hover{color:var(--text);}
+.pmode-sep{width:1px;height:14px;background:var(--line);flex-shrink:0;margin:auto 4px;}
+
+/* ── DAY PLAN panel ── */
+.dp-wrap{padding:12px 14px 32px;}
+.dp-day{margin-bottom:22px;}
+.dp-hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.dp-day-label{font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--acc);}
+.dp-day-count{font-family:var(--ui);font-size:9px;color:var(--muted);}
+.dp-items{display:flex;flex-direction:column;gap:3px;}
+.dp-item{display:flex;align-items:center;gap:10px;padding:7px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:2px;cursor:pointer;transition:all .15s;}
+.dp-item:hover{background:var(--bg3);border-color:var(--bg4);}
+.dp-visited{opacity:.42;}
+.dp-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.dp-info{flex:1;min-width:0;}
+.dp-name{font-family:var(--disp);font-size:13px;font-style:italic;color:var(--hi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dp-meta{font-family:var(--ui);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.dp-check-badge{font-size:9px;color:var(--green);flex-shrink:0;font-family:var(--ui);}
+
+/* ── AREAS panel ── */
+.nh-wrap{padding:12px 14px 32px;display:flex;flex-direction:column;gap:10px;}
+.nh-card{background:var(--bg2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;}
+.nh-hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;}
+.nh-area{font-family:var(--ui);font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--hi);}
+.nh-count{font-family:var(--ui);font-size:9px;background:var(--bg3);color:var(--muted);padding:1px 7px;border-radius:10px;}
+.nh-desc{font-size:11px;color:var(--mid);line-height:1.55;margin-bottom:10px;}
+.nh-cats{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px;}
+.nh-cat-pill{font-family:var(--ui);font-size:8px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:2px 8px;border-radius:20px;border:1px solid;opacity:.85;}
+.nh-items{display:flex;flex-wrap:wrap;gap:4px;}
+.nh-item{font-family:var(--disp);font-size:11px;font-style:italic;color:var(--mid);cursor:pointer;padding:3px 8px;background:var(--bg3);border-radius:2px;transition:color .1s;}
+.nh-item:hover{color:var(--hi);}
+.nh-more{font-family:var(--ui);font-size:9px;color:var(--muted);padding:3px 5px;}
+
+/* ── VISITED panel ── */
+.vt-wrap{padding:12px 14px 32px;}
+.vt-summary{background:var(--bg2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;margin-bottom:14px;}
+.vt-total{font-family:var(--ui);font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--hi);margin-bottom:10px;}
+.vt-prog-outer{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.vt-prog-inner{height:100%;background:var(--green);border-radius:2px;transition:width .4s;}
+.vt-cats{background:var(--bg2);border:1px solid var(--line);border-radius:2px;padding:14px 16px;margin-bottom:14px;display:flex;flex-direction:column;gap:9px;}
+.vt-cat-row{display:grid;grid-template-columns:90px 38px 1fr;align-items:center;gap:8px;}
+.vt-cat-name{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vt-cat-nums{font-family:var(--ui);font-size:9px;color:var(--muted);text-align:right;}
+.vt-cat-bar-outer{height:3px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.vt-cat-bar-inner{height:100%;border-radius:2px;transition:width .4s;}
+.vt-filter-row{display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+.vt-toggle{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:4px 12px;border-radius:20px;border:1px solid var(--line);background:var(--bg3);color:var(--muted);cursor:pointer;transition:all .15s;flex-shrink:0;}
+.vt-toggle.on{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 40%,transparent);}
+.vt-hint{font-size:10px;color:var(--muted);font-family:var(--ui);}
+.vt-list{display:flex;flex-direction:column;gap:2px;}
+.vt-item{display:flex;align-items:center;gap:9px;padding:7px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:2px;cursor:pointer;transition:all .15s;}
+.vt-item:hover{background:var(--bg3);}
+.vt-done{opacity:.38;}
+.vt-check{background:none;border:1px solid var(--line);border-radius:50%;width:20px;height:20px;font-size:10px;color:var(--muted);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;font-family:var(--ui);line-height:1;}
+.vt-check:hover{border-color:var(--green);color:var(--green);}
+.vt-done .vt-check{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent);}
+.vt-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;}
+.vt-info{flex:1;min-width:0;}
+.vt-name{font-family:var(--disp);font-size:13px;font-style:italic;color:var(--hi);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.vt-meta{font-family:var(--ui);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:1px;}
+
+/* ── DAY VIEW panel ── */
+.dv-wrap{padding:12px 14px 32px;}
+.dv-sel{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.dv-sel label{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.dv-sel select{background:var(--bg3);border:1px solid var(--line);border-radius:2px;color:var(--hi);font-family:var(--ui);font-size:10px;font-weight:500;letter-spacing:.06em;padding:5px 10px;outline:none;cursor:pointer;flex:1;}
+.dv-sel select:focus{border-color:var(--muted);}
+.dv-timeline{position:relative;padding-left:42px;}
+.dv-stop{position:relative;margin-bottom:14px;}
+.dv-num{position:absolute;left:-42px;width:24px;height:24px;border-radius:50%;font-family:var(--ui);font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;z-index:1;}
+.dv-connector{position:absolute;left:-30px;top:24px;bottom:-14px;width:1px;background:var(--line);}
+.dv-connector-last{display:none;}
+.dv-card{background:var(--bg2);border:1px solid var(--line);border-radius:2px;padding:10px 13px;cursor:pointer;transition:all .15s;}
+.dv-card:hover{background:var(--bg3);}
+.dv-done .dv-card{opacity:.42;}
+.dv-cat{font-family:var(--ui);font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.dv-name{font-family:var(--disp);font-size:14px;font-style:italic;color:var(--hi);margin-bottom:2px;}
+.dv-area{font-family:var(--ui);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;}
+.dv-acts{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.dv-nav{font-family:var(--ui);font-size:9px;color:var(--acc);text-decoration:none;font-weight:500;letter-spacing:.04em;}
+.dv-nav:hover{text-decoration:underline;}
+.dv-mark{font-family:var(--ui);font-size:9px;background:none;border:1px solid var(--line);color:var(--muted);padding:2px 9px;border-radius:20px;cursor:pointer;transition:all .15s;}
+.dv-mark:hover{color:var(--green);border-color:var(--green);}
+.dv-visited-lbl{font-family:var(--ui);font-size:9px;color:var(--green);}
+.dv-empty{padding:40px 14px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--ui);line-height:1.7;}
+
+/* ── STATS panel ── */
+.snap-wrap{padding:12px 14px 32px;}
+.snap-hero{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:20px;}
+.snap-stat{background:var(--bg2);border:1px solid var(--line);border-radius:2px;padding:12px 6px;text-align:center;}
+.snap-num{font-family:'Fraunces',Georgia,serif;font-style:italic;font-size:22px;color:var(--hi);line-height:1;}
+.snap-lbl{font-family:var(--ui);font-size:8px;font-weight:500;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-top:5px;}
+.snap-section{margin-bottom:18px;}
+.snap-sec-title{font-family:var(--ui);font-size:9px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--line);}
+.snap-bar-row{display:grid;grid-template-columns:90px 1fr 28px;align-items:center;gap:8px;margin-bottom:8px;}
+.snap-bar-cat{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.snap-bar-outer{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.snap-bar-inner{height:100%;border-radius:2px;}
+.snap-bar-num{font-family:var(--ui);font-size:9px;color:var(--muted);text-align:right;}
+.snap-day-row{display:grid;grid-template-columns:90px 1fr 28px;align-items:center;gap:8px;margin-bottom:7px;}
+.snap-day-lbl{font-family:var(--ui);font-size:9px;font-weight:500;color:var(--mid);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.snap-day-bar-outer{height:4px;background:var(--bg4);border-radius:2px;overflow:hidden;}
+.snap-day-bar-inner{height:100%;background:var(--acc);border-radius:2px;}
+.snap-day-cnt{font-family:var(--ui);font-size:9px;color:var(--muted);text-align:right;}
+.snap-community{background:color-mix(in srgb,var(--gold) 10%,transparent);border:1px solid color-mix(in srgb,var(--gold) 25%,transparent);border-radius:2px;padding:10px 14px;font-family:var(--ui);font-size:10px;color:var(--gold);letter-spacing:.04em;}
+
 /* ════════════════════════════════════════════════════════════
    MOBILE  ≤ 768px
    Layout: map fills screen, bottom tab bar, sheets slide up
@@ -606,6 +719,7 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 /* Phone (≤480px): journal hidden, map fills, tab bar active */
 @media (max-width: 480px) {
   #journal{display:none !important;}
+  #panel-bar{display:none !important;}
   #mapwrap{flex:1 !important;height:auto !important;}
   #tab-bar{display:flex !important;}
   #sheet-places,#sheet-filters{display:flex !important;flex-direction:column;}
@@ -737,6 +851,17 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 
     <!-- RESIZE HANDLE -->
     <div id="resize-handle" title="Drag to resize"></div>
+
+    <!-- PANEL MODE BAR -->
+    <div id="panel-bar">
+      <button class="pmode on" data-mode="journal" onclick="setPanelMode(this.dataset.mode)">Journal</button>
+      <div class="pmode-sep"></div>
+      <button class="pmode" data-mode="days" onclick="setPanelMode(this.dataset.mode)">Day Plan</button>
+      <button class="pmode" data-mode="today" onclick="setPanelMode(this.dataset.mode)">Day View</button>
+      <button class="pmode" data-mode="areas" onclick="setPanelMode(this.dataset.mode)">Areas</button>
+      <button class="pmode" data-mode="visited" onclick="setPanelMode(this.dataset.mode)">Visited</button>
+      <button class="pmode" data-mode="stats" onclick="setPanelMode(this.dataset.mode)">Stats</button>
+    </div>
 
     <!-- JOURNAL -->
     <div id="journal">
@@ -1780,6 +1905,8 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     currentCountry = code;
     P = COUNTRIES[code].P;
     ZONES = COUNTRIES[code].ZONES;
+    try { window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_' + code) || '[]')); } catch(e) { window.visitedSet = new Set(); }
+    window.todayRunDay = null;
 
     // Update header
     document.getElementById('cflag').textContent = COUNTRIES[code].flag;
@@ -1965,6 +2092,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   // ── JOURNAL RENDER ───────────────────────────────────────────────────────
   const AREA_ORDER = ['Seoul','Jongno','Myeongdong','Hongdae','Yeonam','Seongsu','Hannam','Itaewon','Gangnam','Apgujeong','Incheon','Gangwon','Busan','Daejeon','Akihabara','Tokyo','Harajuku','Nakano','Da\'an','Ximen','Alishan','Bishkek'];
   function renderJournal() {
+    if ((window.panelMode || 'journal') !== 'journal') { renderPanel(); return; }
     const el = document.getElementById('journal-inner');
     if (!el) return;
     const q = document.getElementById('q').value.toLowerCase();
@@ -2003,6 +2131,288 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
         }).join('')+'</div></div>';
     }).join('');
   }
+
+  // ── PANEL MODE SYSTEM ───────────────────────────────────────────────────
+  window.panelMode = 'journal';
+  window.showUnvisitedOnly = false;
+  window.todayRunDay = null;
+
+  const DAY_ORDER_SHARED = [
+    'Day 1','Day 1-2','Day 2','Day 3','Day 3-4','Day 4 (night)',
+    'Day 5','Day 5-6','Day 6','Day 7','Day 7-8','Day 8',
+    'Day 9','Day 9 (day trip)','Day 10','Day 10 (day trip)','Day 10-11',
+    'Day 11','Day 12-13','Day 13','Day 14','Evenings','Flexible'
+  ];
+
+  function visitedKeyFor(p) { return p.n + '||' + (p.area || ''); }
+  function isVisited(p) { return window.visitedSet ? window.visitedSet.has(visitedKeyFor(p)) : false; }
+
+  function renderPanel() {
+    const mode = window.panelMode || 'journal';
+    if (mode === 'journal') renderJournal();
+    else if (mode === 'days') renderDayPlanner();
+    else if (mode === 'areas') renderNeighbourhoods();
+    else if (mode === 'visited') renderVisited();
+    else if (mode === 'today') renderDayView();
+    else if (mode === 'stats') renderTripSnapshot();
+  }
+
+  window.setPanelMode = function(mode) {
+    window.panelMode = mode;
+    window.todayRunDay = null;
+    document.querySelectorAll('.pmode').forEach(function(b) {
+      b.classList.toggle('on', b.dataset.mode === mode);
+    });
+    renderPanel();
+  };
+
+  window.toggleVisited = function(gi, e) {
+    if (e) e.stopPropagation();
+    const p = allPlaces()[gi];
+    if (!p) return;
+    if (!window.visitedSet) window.visitedSet = new Set();
+    const vk = visitedKeyFor(p);
+    if (window.visitedSet.has(vk)) window.visitedSet.delete(vk);
+    else window.visitedSet.add(vk);
+    try { localStorage.setItem('wp_visited_' + currentCountry, JSON.stringify([...window.visitedSet])); } catch(e2){}
+    renderPanel();
+  };
+
+  window.setDayViewDay = function(day) {
+    window.todayRunDay = day;
+    renderDayView();
+  };
+
+  function renderDayPlanner() {
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
+    const byDay = {};
+    places.forEach(function(p) {
+      const d = p.day || 'Flexible';
+      if (!byDay[d]) byDay[d] = [];
+      byDay[d].push(p);
+    });
+    const days = Object.keys(byDay).sort(function(a, b) {
+      const ia = DAY_ORDER_SHARED.indexOf(a), ib = DAY_ORDER_SHARED.indexOf(b);
+      if (ia < 0 && ib < 0) return a.localeCompare(b);
+      if (ia < 0) return 1; if (ib < 0) return -1;
+      return ia - ib;
+    });
+    if (!days.length) { el.innerHTML = '<div class="empty-state">No places to show.</div>'; return; }
+    el.innerHTML = '<div class="dp-wrap">' + days.map(function(day) {
+      const items = byDay[day];
+      return '<div class="dp-day">' +
+        '<div class="dp-hdr"><span class="dp-day-label">' + esc(day) + '</span><span class="dp-day-count">' + items.length + ' places</span></div>' +
+        '<div class="dp-items">' +
+        items.map(function(p) {
+          const gi = allPlaces().indexOf(p);
+          const cfg = CC[p.c] || {color:'#888'};
+          const vis = isVisited(p);
+          return '<div class="dp-item' + (vis ? ' dp-visited' : '') + '" onclick="focusJCard(' + gi + ')">' +
+            '<div class="dp-dot" style="background:' + cfg.color + '"></div>' +
+            '<div class="dp-info"><div class="dp-name">' + esc(p.n) + '</div>' +
+            '<div class="dp-meta">' + esc(p.c) + ' · ' + esc(p.area || '') + '</div></div>' +
+            (vis ? '<span class="dp-check-badge">✓</span>' : '') +
+            '</div>';
+        }).join('') + '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  function renderNeighbourhoods() {
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
+    const byArea = {};
+    places.forEach(function(p) {
+      const a = p.area || 'Other';
+      if (!byArea[a]) byArea[a] = { items: [], cats: {} };
+      byArea[a].items.push(p);
+      byArea[a].cats[p.c] = (byArea[a].cats[p.c] || 0) + 1;
+    });
+    const areas = Object.keys(byArea).sort(function(a, b) {
+      const ia = AREA_ORDER.indexOf(a), ib = AREA_ORDER.indexOf(b);
+      if (ia < 0 && ib < 0) return byArea[b].items.length - byArea[a].items.length;
+      if (ia < 0) return 1; if (ib < 0) return -1;
+      return ia - ib;
+    });
+    if (!areas.length) { el.innerHTML = '<div class="empty-state">No places to show.</div>'; return; }
+    el.innerHTML = '<div class="nh-wrap">' + areas.map(function(area) {
+      const dat = byArea[area];
+      const nhbr = dat.items.find(function(p) { return p.c === 'Neighbourhood'; });
+      const desc = nhbr ? nhbr.d : '';
+      const catEntries = Object.entries(dat.cats).sort(function(a, b) { return b[1] - a[1]; });
+      return '<div class="nh-card">' +
+        '<div class="nh-hdr"><span class="nh-area">' + esc(area) + '</span><span class="nh-count">' + dat.items.length + '</span></div>' +
+        (desc ? '<div class="nh-desc">' + esc(desc) + '</div>' : '') +
+        '<div class="nh-cats">' + catEntries.map(function(e) {
+          const cfg = CC[e[0]] || {color:'#888'};
+          return '<span class="nh-cat-pill" style="border-color:' + cfg.color + ';color:' + cfg.color + '">' + esc(e[0]) + ' ' + e[1] + '</span>';
+        }).join('') + '</div>' +
+        '<div class="nh-items">' + dat.items.slice(0, 8).map(function(p) {
+          const gi = allPlaces().indexOf(p);
+          return '<span class="nh-item" onclick="focusJCard(' + gi + ')">' + esc(p.n) + '</span>';
+        }).join('') + (dat.items.length > 8 ? '<span class="nh-more">+' + (dat.items.length - 8) + ' more</span>' : '') + '</div>' +
+        '</div>';
+    }).join('') + '</div>';
+  }
+
+  function renderVisited() {
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    if (!window.visitedSet) window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_' + currentCountry) || '[]'));
+    const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
+    const shown = window.showUnvisitedOnly ? places.filter(function(p) { return !isVisited(p); }) : places;
+    const catStats = {};
+    Object.keys(CC).forEach(function(c) {
+      const cp = places.filter(function(p) { return p.c === c; });
+      if (!cp.length) return;
+      catStats[c] = { total: cp.length, visited: cp.filter(function(p) { return isVisited(p); }).length };
+    });
+    const totalVis = places.filter(function(p) { return isVisited(p); }).length;
+    const pctTotal = places.length ? Math.round(totalVis / places.length * 100) : 0;
+    el.innerHTML =
+      '<div class="vt-wrap">' +
+      '<div class="vt-summary"><div class="vt-total">' + totalVis + ' / ' + places.length + ' visited</div>' +
+      '<div class="vt-prog-outer"><div class="vt-prog-inner" style="width:' + pctTotal + '%"></div></div></div>' +
+      '<div class="vt-cats">' + Object.entries(catStats).map(function(e) {
+        const cfg = CC[e[0]] || {color:'#888'};
+        const pct = e[1].total ? Math.round(e[1].visited / e[1].total * 100) : 0;
+        return '<div class="vt-cat-row"><span class="vt-cat-name" style="color:' + cfg.color + '">' + esc(e[0]) + '</span>' +
+          '<span class="vt-cat-nums">' + e[1].visited + '/' + e[1].total + '</span>' +
+          '<div class="vt-cat-bar-outer"><div class="vt-cat-bar-inner" style="width:' + pct + '%;background:' + cfg.color + '"></div></div></div>';
+      }).join('') + '</div>' +
+      '<div class="vt-filter-row">' +
+        '<button class="vt-toggle' + (window.showUnvisitedOnly ? ' on' : '') + '" onclick="window.showUnvisitedOnly=!window.showUnvisitedOnly;window.renderPanel()">' +
+          (window.showUnvisitedOnly ? 'Show all' : 'Unvisited only') + '</button>' +
+        '<span class="vt-hint">Tap a card to fly to it · tap ○ to check off</span>' +
+      '</div>' +
+      '<div class="vt-list">' + shown.map(function(p) {
+        const gi = allPlaces().indexOf(p);
+        const cfg = CC[p.c] || {color:'#888'};
+        const vis = isVisited(p);
+        return '<div class="vt-item' + (vis ? ' vt-done' : '') + '" onclick="focusJCard(' + gi + ')">' +
+          '<button class="vt-check" onclick="toggleVisited(' + gi + ',event)">' + (vis ? '✓' : '○') + '</button>' +
+          '<div class="vt-dot" style="background:' + cfg.color + '"></div>' +
+          '<div class="vt-info"><div class="vt-name">' + esc(p.n) + '</div>' +
+          '<div class="vt-meta">' + esc(p.c) + ' · ' + esc(p.area || '') + '</div></div>' +
+          '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  function renderDayView() {
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
+    const dayVals = [];
+    const seen = {};
+    DAY_ORDER_SHARED.forEach(function(d) { if (!seen[d]) { seen[d] = true; if (places.some(function(p) { return (p.day||'Flexible') === d; })) dayVals.push(d); } });
+    places.forEach(function(p) { const d = p.day||'Flexible'; if (!seen[d]) { seen[d] = true; dayVals.push(d); } });
+    if (!dayVals.length) { el.innerHTML = '<div class="dv-empty">No places to show.</div>'; return; }
+    const selDay = window.todayRunDay && dayVals.includes(window.todayRunDay) ? window.todayRunDay : dayVals[0];
+    const dayPlaces = places.filter(function(p) { return (p.day || 'Flexible') === selDay; });
+    const CAT_PRI = ['Transport','Accommodation','Neighbourhood','Culture','Shopping','Skincare','Food','DayTrip'];
+    dayPlaces.sort(function(a, b) {
+      const ia = CAT_PRI.indexOf(a.c), ib = CAT_PRI.indexOf(b.c);
+      return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+    });
+    el.innerHTML =
+      '<div class="dv-wrap">' +
+      '<div class="dv-sel"><label>Day</label>' +
+        '<select onchange="window.setDayViewDay(this.value)">' +
+          dayVals.map(function(d) {
+            return '<option value="' + esc(d) + '"' + (d === selDay ? ' selected' : '') + '>' + esc(d) + '</option>';
+          }).join('') +
+        '</select>' +
+      '</div>' +
+      (dayPlaces.length ?
+        '<div class="dv-timeline">' + dayPlaces.map(function(p, i) {
+          const gi = allPlaces().indexOf(p);
+          const cfg = CC[p.c] || {color:'#888'};
+          const vis = isVisited(p);
+          const naverHref = 'https://map.naver.com/v5/search/' + encodeURIComponent(p.n);
+          const isLast = i === dayPlaces.length - 1;
+          return '<div class="dv-stop' + (vis ? ' dv-done' : '') + '">' +
+            '<div class="dv-num" style="background:' + cfg.color + '">' + (i + 1) + '</div>' +
+            '<div class="dv-connector' + (isLast ? ' dv-connector-last' : '') + '"></div>' +
+            '<div class="dv-card" onclick="focusJCard(' + gi + ')">' +
+              '<div class="dv-cat" style="color:' + cfg.color + '">' + esc(p.c) + '</div>' +
+              '<div class="dv-name">' + esc(p.n) + '</div>' +
+              '<div class="dv-area">' + esc(p.area || '') + '</div>' +
+              '<div class="dv-acts">' +
+                '<a class="dv-nav" href="' + esc(naverHref) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Naver Maps →</a>' +
+                (vis ?
+                  '<span class="dv-visited-lbl">✓ visited</span>' :
+                  '<button class="dv-mark" onclick="event.stopPropagation();toggleVisited(' + gi + ',event)">Mark visited</button>') +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div>' :
+        '<div class="dv-empty">No places tagged for <strong>' + esc(selDay) + '</strong>.<br>Add a day tag when suggesting a place.</div>'
+      ) + '</div>';
+  }
+
+  function renderTripSnapshot() {
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    if (!window.visitedSet) window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_' + currentCountry) || '[]'));
+    const all = allPlaces();
+    const places = all.filter(function(p) { return activeFilters.has(p.c); });
+    const visitedCnt = places.filter(function(p) { return isVisited(p); }).length;
+    const areas = new Set(places.map(function(p) { return p.area; }).filter(Boolean)).size;
+    const catCounts = {};
+    Object.keys(CC).forEach(function(c) {
+      const cnt = places.filter(function(p) { return p.c === c; }).length;
+      if (cnt) catCounts[c] = cnt;
+    });
+    const maxCat = Math.max.apply(null, Object.values(catCounts).concat([1]));
+    const dayCounts = {};
+    places.forEach(function(p) { const d = p.day || 'Flexible'; dayCounts[d] = (dayCounts[d] || 0) + 1; });
+    const maxDay = Math.max.apply(null, Object.values(dayCounts).concat([1]));
+    const daysPlanned = Object.keys(dayCounts).filter(function(d) { return d !== 'Flexible'; }).length;
+    const community = places.filter(function(p) { return p.isCommunity; }).length;
+    const daySorted = Object.keys(dayCounts).sort(function(a, b) {
+      const ia = DAY_ORDER_SHARED.indexOf(a), ib = DAY_ORDER_SHARED.indexOf(b);
+      if (ia < 0 && ib < 0) return a.localeCompare(b);
+      if (ia < 0) return 1; if (ib < 0) return -1;
+      return ia - ib;
+    });
+    el.innerHTML =
+      '<div class="snap-wrap">' +
+      '<div class="snap-hero">' +
+        '<div class="snap-stat"><div class="snap-num">' + places.length + '</div><div class="snap-lbl">places</div></div>' +
+        '<div class="snap-stat"><div class="snap-num">' + areas + '</div><div class="snap-lbl">areas</div></div>' +
+        '<div class="snap-stat"><div class="snap-num">' + daysPlanned + '</div><div class="snap-lbl">days</div></div>' +
+        '<div class="snap-stat"><div class="snap-num">' + visitedCnt + '</div><div class="snap-lbl">visited</div></div>' +
+      '</div>' +
+      '<div class="snap-section"><div class="snap-sec-title">By category</div>' +
+        Object.entries(catCounts).sort(function(a, b) { return b[1] - a[1]; }).map(function(e) {
+          const cfg = CC[e[0]] || {color:'#888'};
+          const pct = Math.round(e[1] / maxCat * 100);
+          return '<div class="snap-bar-row">' +
+            '<span class="snap-bar-cat" style="color:' + cfg.color + '">' + esc(e[0]) + '</span>' +
+            '<div class="snap-bar-outer"><div class="snap-bar-inner" style="width:' + pct + '%;background:' + cfg.color + '"></div></div>' +
+            '<span class="snap-bar-num">' + e[1] + '</span></div>';
+        }).join('') +
+      '</div>' +
+      '<div class="snap-section"><div class="snap-sec-title">By day</div>' +
+        daySorted.map(function(d) {
+          const pct = Math.round(dayCounts[d] / maxDay * 100);
+          return '<div class="snap-day-row">' +
+            '<span class="snap-day-lbl">' + esc(d) + '</span>' +
+            '<div class="snap-day-bar-outer"><div class="snap-day-bar-inner" style="width:' + pct + '%"></div></div>' +
+            '<span class="snap-day-cnt">' + dayCounts[d] + '</span></div>';
+        }).join('') +
+      '</div>' +
+      (community ? '<div class="snap-section"><div class="snap-sec-title">Community</div>' +
+        '<div class="snap-community">' + community + ' place' + (community > 1 ? 's' : '') + ' suggested by fellow travellers</div></div>' : '') +
+      '</div>';
+  }
+
+  window.renderPanel = renderPanel;
+  window.renderVisited = renderVisited;
+  window.renderDayView = renderDayView;
+
   window.focusJCard = function(gi) {
     const p = allPlaces()[gi];
     if (!p) return;
@@ -2046,6 +2456,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   };
 
   // ── START ─────────────────────────────────────────────────────────────
+  window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_kr') || '[]'));
   document.querySelector('.cm-item[data-c="kr"]').classList.add('active');
   document.getElementById('hpill').textContent = P.length + ' places';
   renderDayOptions();
