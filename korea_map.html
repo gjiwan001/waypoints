@@ -323,15 +323,52 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 .tip-name{font-family:var(--disp);font-size:15px;font-style:italic;color:var(--hi);line-height:1.2;margin-bottom:2px;}
 .tip-area{font-size:9px;color:var(--muted);font-family:var(--ui);letter-spacing:.06em;}
 
-/* ── PANEL MODE BAR ── */
-#panel-bar{height:28px;min-height:28px;display:flex;align-items:center;padding:0 14px;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;overflow-y:hidden;}
-#panel-bar::-webkit-scrollbar{display:none;}
-.pmode{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;padding:0 10px;border:none;background:none;position:relative;height:100%;display:inline-flex;align-items:center;transition:color .15s;}
-.pmode::after{content:'';position:absolute;bottom:0;left:10px;right:10px;height:1.5px;background:var(--acc);transform:scaleX(0);transition:transform .2s cubic-bezier(.25,.46,.45,.94);}
-.pmode.on{color:var(--hi);}
-.pmode.on::after{transform:scaleX(1);}
-.pmode:hover{color:var(--text);}
-.pmode-sep{width:1px;height:14px;background:var(--line);flex-shrink:0;margin:auto 4px;}
+/* ── PANEL BAR ── */
+#panel-bar{height:36px;min-height:36px;display:flex;align-items:stretch;padding:0;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;}
+#pd-tabs{display:flex;align-items:stretch;gap:0;overflow-x:auto;flex:1;scrollbar-width:none;}
+#pd-tabs::-webkit-scrollbar{display:none;}
+.pdt{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;white-space:nowrap;flex-shrink:0;padding:0 12px;border:none;background:none;position:relative;height:100%;display:inline-flex;align-items:center;gap:5px;transition:color .15s;border-right:1px solid var(--line);}
+.pdt::after{content:'';position:absolute;bottom:0;left:12px;right:12px;height:1.5px;background:var(--acc);transform:scaleX(0);transition:transform .2s cubic-bezier(.25,.46,.45,.94);}
+.pdt.on{color:var(--hi);}
+.pdt.on::after{transform:scaleX(1);}
+.pdt:hover{color:var(--text);}
+.pdt-cnt{font-size:8px;color:var(--muted);background:var(--bg3);padding:1px 5px;border-radius:10px;}
+.pdt.on .pdt-cnt{background:color-mix(in srgb,var(--acc) 20%,transparent);color:var(--acc);}
+.pdt-prog{width:20px;height:2px;background:var(--bg4);border-radius:1px;overflow:hidden;}
+.pdt-prog-fill{height:100%;background:var(--green);border-radius:1px;transition:width .3s;}
+#pd-mode{display:flex;align-items:center;gap:2px;padding:0 8px;flex-shrink:0;border-left:1px solid var(--line);}
+.pdmb{font-family:var(--ui);font-size:8px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;padding:3px 8px;border-radius:2px;border:none;background:none;transition:all .12s;}
+.pdmb.on{color:var(--acc);background:color-mix(in srgb,var(--acc) 12%,transparent);}
+.pdmb:hover:not(.on){color:var(--text);}
+/* ── BROWSE MODE ── */
+.pt-area-hdr{font-family:var(--ui);font-size:8px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--muted);padding:6px 14px 4px;background:var(--bg2);border-bottom:1px solid var(--line);border-top:1px solid var(--line);position:sticky;top:0;z-index:10;}
+.pt-area-hdr:first-child{border-top:none;}
+.pt-row{display:flex;align-items:center;gap:8px;padding:7px 14px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .1s;}
+.pt-row:hover{background:var(--bg3);}
+.pt-row.pt-visited .pt-name{text-decoration:line-through;color:var(--muted);}
+.pt-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.pt-name{flex:1;font-family:var(--disp);font-size:13px;font-style:italic;color:var(--hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.pt-cat{font-family:var(--ui);font-size:9px;color:var(--muted);flex-shrink:0;letter-spacing:.04em;}
+.pt-day{font-family:var(--ui);font-size:8px;color:var(--gold);flex-shrink:0;padding:1px 6px;border-radius:20px;background:rgba(196,162,74,.1);border:1px solid rgba(196,162,74,.2);}
+.pt-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);background:none;color:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;font-family:var(--ui);line-height:1;}
+.pt-check:hover{border-color:var(--green);color:var(--green);}
+.pt-row.pt-visited .pt-check{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent);}
+/* ── TRIP MODE ── */
+.tp-progress{padding:7px 14px;font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--line);}
+.tp-row{display:flex;align-items:flex-start;gap:12px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .12s;}
+.tp-row:hover{background:var(--bg3);}
+.tp-row.tp-done{opacity:.4;}
+.tp-check{width:30px;height:30px;border-radius:50%;border:2px solid var(--line);background:none;color:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .2s;font-family:var(--ui);line-height:1;margin-top:1px;}
+.tp-check:hover{border-color:var(--green);color:var(--green);}
+.tp-row.tp-done .tp-check{color:var(--green);border-color:color-mix(in srgb,var(--green) 50%,transparent);background:color-mix(in srgb,var(--green) 12%,transparent);}
+.tp-info{flex:1;min-width:0;}
+.tp-name{font-family:var(--disp);font-size:15px;font-style:italic;color:var(--hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.tp-row.tp-done .tp-name{text-decoration:line-through;}
+.tp-meta{font-family:var(--ui);font-size:9px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+.tp-acts{display:flex;gap:6px;margin-top:7px;}
+.tp-act{font-family:var(--ui);font-size:9px;font-weight:500;color:var(--acc);text-decoration:none;padding:3px 9px;border:1px solid color-mix(in srgb,var(--acc) 30%,transparent);border-radius:20px;transition:all .12s;}
+.tp-act:hover{background:color-mix(in srgb,var(--acc) 12%,transparent);}
+.pt-empty{padding:40px 14px;text-align:center;color:var(--muted);font-size:12px;font-family:var(--ui);line-height:1.7;}
 
 /* ── DAY PLAN panel ── */
 .dp-wrap{padding:12px 14px 32px;}
@@ -852,15 +889,13 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
     <!-- RESIZE HANDLE -->
     <div id="resize-handle" title="Drag to resize"></div>
 
-    <!-- PANEL MODE BAR -->
+    <!-- PANEL BAR: day tabs + mode toggle -->
     <div id="panel-bar">
-      <button class="pmode on" data-mode="journal" onclick="setPanelMode(this.dataset.mode)">Journal</button>
-      <div class="pmode-sep"></div>
-      <button class="pmode" data-mode="days" onclick="setPanelMode(this.dataset.mode)">Day Plan</button>
-      <button class="pmode" data-mode="today" onclick="setPanelMode(this.dataset.mode)">Day View</button>
-      <button class="pmode" data-mode="areas" onclick="setPanelMode(this.dataset.mode)">Areas</button>
-      <button class="pmode" data-mode="visited" onclick="setPanelMode(this.dataset.mode)">Visited</button>
-      <button class="pmode" data-mode="stats" onclick="setPanelMode(this.dataset.mode)">Stats</button>
+      <div id="pd-tabs"></div>
+      <div id="pd-mode">
+        <button class="pdmb on" onclick="setPanelViewMode('browse')">Browse</button>
+        <button class="pdmb" onclick="setPanelViewMode('trip')">Trip</button>
+      </div>
     </div>
 
     <!-- JOURNAL -->
@@ -2091,51 +2126,11 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
 
   // ── JOURNAL RENDER ───────────────────────────────────────────────────────
   const AREA_ORDER = ['Seoul','Jongno','Myeongdong','Hongdae','Yeonam','Seongsu','Hannam','Itaewon','Gangnam','Apgujeong','Incheon','Gangwon','Busan','Daejeon','Akihabara','Tokyo','Harajuku','Nakano','Da\'an','Ximen','Alishan','Bishkek'];
-  function renderJournal() {
-    if ((window.panelMode || 'journal') !== 'journal') { renderPanel(); return; }
-    const el = document.getElementById('journal-inner');
-    if (!el) return;
-    const q = document.getElementById('q').value.toLowerCase();
-    const places = allPlaces().filter(p => {
-      if (!activeFilters.has(p.c)) return false;
-      if (activeDayFilter && p.day !== activeDayFilter) return false;
-      if (activeAreaFilter && p.area !== activeAreaFilter) return false;
-      if (q && !p.n.toLowerCase().includes(q) && !(p.area||'').toLowerCase().includes(q)
-              && !(p.d||'').toLowerCase().includes(q) && !(p.tags||[]).some(t=>t.includes(q))) return false;
-      return true;
-    });
-    if (!places.length) {
-      el.innerHTML = '<div style="padding:32px 14px;text-align:center;color:var(--muted);font-size:12px;line-height:1.7">No places match this filter.<br><span style="font-size:11px">Try clearing the search or selecting different categories.</span></div>';
-      return;
-    }
-    const byArea = {};
-    places.forEach(p => { const a = p.area||'Other'; (byArea[a]=byArea[a]||[]).push(p); });
-    const areas = Object.keys(byArea).sort((a,b) => {
-      const ia = AREA_ORDER.indexOf(a), ib = AREA_ORDER.indexOf(b);
-      if (ia<0 && ib<0) return a.localeCompare(b);
-      if (ia<0) return 1; if (ib<0) return -1;
-      return ia - ib;
-    });
-    el.innerHTML = areas.map(area => {
-      const items = byArea[area];
-      return '<div class="ja-section">'+
-        '<div class="ja-area">'+esc(area)+' <span class="ja-area-count">'+items.length+'</span></div>'+
-        '<div class="ja-grid">'+items.map(p => {
-          const gi = allPlaces().indexOf(p);
-          const cfg = CC[p.c]||{color:'#888'};
-          return '<div class="jcard" style="--cc:'+cfg.color+'" data-gi="'+gi+'" onclick="focusJCard('+gi+')">'+
-            '<div class="jc-name">'+esc(p.n)+'</div>'+
-            '<div class="jc-meta"><span class="jc-cat" style="color:'+cfg.color+'">'+esc(p.c)+'</span>'+
-            (p.day?' <span class="jc-day">'+esc(p.day)+'</span>':'')+
-            (p.isCommunity?'</div><div class="jc-community">★ '+esc(p.contributor):'')+'</div></div>';
-        }).join('')+'</div></div>';
-    }).join('');
-  }
+  function renderJournal() { renderItinerary(); }
 
-  // ── PANEL MODE SYSTEM ───────────────────────────────────────────────────
-  window.panelMode = 'journal';
-  window.showUnvisitedOnly = false;
-  window.todayRunDay = null;
+  // ── PANEL SYSTEM ─────────────────────────────────────────────────────────
+  window.panelDay = 'all';
+  window.panelViewMode = 'browse';
 
   const DAY_ORDER_SHARED = [
     'Day 1','Day 1-2','Day 2','Day 3','Day 3-4','Day 4 (night)',
@@ -2147,24 +2142,129 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   function visitedKeyFor(p) { return p.n + '||' + (p.area || ''); }
   function isVisited(p) { return window.visitedSet ? window.visitedSet.has(visitedKeyFor(p)) : false; }
 
-  function renderPanel() {
-    const mode = window.panelMode || 'journal';
-    if (mode === 'journal') renderJournal();
-    else if (mode === 'days') renderDayPlanner();
-    else if (mode === 'areas') renderNeighbourhoods();
-    else if (mode === 'visited') renderVisited();
-    else if (mode === 'today') renderDayView();
-    else if (mode === 'stats') renderTripSnapshot();
+  function buildPanelDayTabs() {
+    const tabs = document.getElementById('pd-tabs');
+    if (!tabs) return;
+    const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
+    const dayCounts = {};
+    places.forEach(function(p) {
+      const d = p.day || '__none__';
+      if (!dayCounts[d]) dayCounts[d] = { total: 0, visited: 0 };
+      dayCounts[d].total++;
+      if (isVisited(p)) dayCounts[d].visited++;
+    });
+    const allVis = places.filter(function(p) { return isVisited(p); }).length;
+    const allPct = places.length ? Math.round(allVis / places.length * 100) : 0;
+    const dayKeys = DAY_ORDER_SHARED.filter(function(d) { return dayCounts[d]; });
+    if (dayCounts['__none__']) dayKeys.push('__none__');
+    const cur = window.panelDay;
+    let html = '<button class="pdt' + (cur === 'all' ? ' on' : '') + '" onclick="setPanelDay(\'all\')">' +
+      'All <span class="pdt-cnt">' + places.length + '</span>' +
+      '<div class="pdt-prog"><div class="pdt-prog-fill" style="width:' + allPct + '%"></div></div></button>';
+    dayKeys.forEach(function(d) {
+      const label = d === '__none__' ? 'No day' : d;
+      const cnt = dayCounts[d];
+      const pct = cnt.total ? Math.round(cnt.visited / cnt.total * 100) : 0;
+      html += '<button class="pdt' + (cur === d ? ' on' : '') + '" onclick="setPanelDay(\'' + d.replace(/'/g,"\\'") + '\')">' +
+        esc(label) + ' <span class="pdt-cnt">' + cnt.total + '</span>' +
+        '<div class="pdt-prog"><div class="pdt-prog-fill" style="width:' + pct + '%"></div></div></button>';
+    });
+    tabs.innerHTML = html;
   }
 
-  window.setPanelMode = function(mode) {
-    window.panelMode = mode;
-    window.todayRunDay = null;
-    document.querySelectorAll('.pmode').forEach(function(b) {
-      b.classList.toggle('on', b.dataset.mode === mode);
-    });
-    renderPanel();
+  window.setPanelDay = function(day) {
+    window.panelDay = day;
+    renderItinerary();
   };
+
+  window.setPanelViewMode = function(mode) {
+    window.panelViewMode = mode;
+    document.querySelectorAll('.pdmb').forEach(function(b) {
+      b.classList.toggle('on', b.textContent.trim() === (mode === 'browse' ? 'Browse' : 'Trip'));
+    });
+    renderItinerary();
+  };
+
+  function renderItinerary() {
+    buildPanelDayTabs();
+    const el = document.getElementById('journal-inner');
+    if (!el) return;
+    const q = ((document.getElementById('q') || {}).value || '').toLowerCase();
+    const places = allPlaces().filter(function(p) {
+      if (!activeFilters.has(p.c)) return false;
+      if (q && !p.n.toLowerCase().includes(q) && !(p.area||'').toLowerCase().includes(q)
+              && !(p.d||'').toLowerCase().includes(q)) return false;
+      return true;
+    });
+    let filtered;
+    if (window.panelDay === 'all') {
+      filtered = places;
+    } else if (window.panelDay === '__none__') {
+      filtered = places.filter(function(p) { return !p.day; });
+    } else {
+      filtered = places.filter(function(p) { return (p.day || 'Flexible') === window.panelDay; });
+    }
+    if (window.panelViewMode === 'trip') {
+      renderTripMode(el, filtered);
+    } else {
+      renderBrowseMode(el, filtered);
+    }
+  }
+
+  function renderBrowseMode(el, places) {
+    if (!places.length) {
+      el.innerHTML = '<div class="pt-empty">No places match this filter.<br><span style="font-size:11px">Try clearing the search or selecting different categories.</span></div>';
+      return;
+    }
+    const byArea = {};
+    places.forEach(function(p) { const a = p.area || 'Other'; if (!byArea[a]) byArea[a] = []; byArea[a].push(p); });
+    const areas = Object.keys(byArea).sort(function(a, b) {
+      const ia = AREA_ORDER.indexOf(a), ib = AREA_ORDER.indexOf(b);
+      if (ia < 0 && ib < 0) return a.localeCompare(b);
+      if (ia < 0) return 1; if (ib < 0) return -1;
+      return ia - ib;
+    });
+    el.innerHTML = areas.map(function(area) {
+      return '<div class="pt-area-hdr">' + esc(area) + '</div>' +
+        byArea[area].map(function(p) {
+          const gi = allPlaces().indexOf(p);
+          const cfg = CC[p.c] || { color: '#888' };
+          const vis = isVisited(p);
+          return '<div class="pt-row' + (vis ? ' pt-visited' : '') + '" onclick="focusJCard(' + gi + ')">' +
+            '<div class="pt-dot" style="background:' + cfg.color + '"></div>' +
+            '<span class="pt-name">' + esc(p.n) + '</span>' +
+            '<span class="pt-cat">' + esc(p.c) + '</span>' +
+            (p.day && window.panelDay === 'all' ? '<span class="pt-day">' + esc(p.day) + '</span>' : '') +
+            '<button class="pt-check" onclick="toggleVisited(' + gi + ',event)">' + (vis ? '✓' : '') + '</button>' +
+            '</div>';
+        }).join('');
+    }).join('');
+  }
+
+  function renderTripMode(el, places) {
+    if (!places.length) {
+      el.innerHTML = '<div class="pt-empty">No places for this day.<br><span style="font-size:11px">Select a day tab above or switch to Browse.</span></div>';
+      return;
+    }
+    const sorted = places.slice().sort(function(a, b) {
+      return (isVisited(a) ? 1 : 0) - (isVisited(b) ? 1 : 0);
+    });
+    const vis = places.filter(function(p) { return isVisited(p); }).length;
+    el.innerHTML =
+      '<div class="tp-progress">' + vis + ' / ' + places.length + ' checked off</div>' +
+      sorted.map(function(p) {
+        const gi = allPlaces().indexOf(p);
+        const done = isVisited(p);
+        const naverHref = 'https://map.naver.com/v5/search/' + encodeURIComponent(p.n);
+        return '<div class="tp-row' + (done ? ' tp-done' : '') + '" onclick="focusJCard(' + gi + ')">' +
+          '<button class="tp-check" onclick="toggleVisited(' + gi + ',event)">' + (done ? '✓' : '') + '</button>' +
+          '<div class="tp-info">' +
+            '<div class="tp-name">' + esc(p.n) + '</div>' +
+            '<div class="tp-meta">' + esc(p.c) + ' · ' + esc(p.area || '') + '</div>' +
+            (!done ? '<div class="tp-acts"><a class="tp-act" href="' + esc(naverHref) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Naver Maps ↗</a></div>' : '') +
+          '</div></div>';
+      }).join('');
+  }
 
   window.toggleVisited = function(gi, e) {
     if (e) e.stopPropagation();
@@ -2175,12 +2275,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     if (window.visitedSet.has(vk)) window.visitedSet.delete(vk);
     else window.visitedSet.add(vk);
     try { localStorage.setItem('wp_visited_' + currentCountry, JSON.stringify([...window.visitedSet])); } catch(e2){}
-    renderPanel();
-  };
-
-  window.setDayViewDay = function(day) {
-    window.todayRunDay = day;
-    renderDayView();
+    renderItinerary();
   };
 
   function renderDayPlanner() {
@@ -2409,9 +2504,9 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
       '</div>';
   }
 
-  window.renderPanel = renderPanel;
-  window.renderVisited = renderVisited;
-  window.renderDayView = renderDayView;
+  window.renderPanel = renderItinerary;
+  window.renderVisited = renderItinerary;
+  window.renderDayView = renderItinerary;
 
   window.focusJCard = function(gi) {
     const p = allPlaces()[gi];
