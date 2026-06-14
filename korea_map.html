@@ -506,6 +506,12 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#faf6f0;color:#5
 .nhbr-txt{font-family:"DM Sans",sans-serif;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:rgba(42,32,22,.72);text-shadow:0 0 3px rgba(255,255,255,1),0 0 8px rgba(255,255,255,.9),1px 1px 0 rgba(255,255,255,.8);white-space:nowrap;pointer-events:none;}
 .monument-lbl{background:rgba(28,28,30,.72);color:#e8e4de;font-family:"DM Mono",monospace;font-size:8px;padding:2px 7px;border-radius:8px;white-space:nowrap;pointer-events:none;border:1px solid rgba(255,255,255,.08);}
 
+/* ── RESIZE HANDLE ── */
+#resize-handle{height:8px;flex-shrink:0;background:var(--bg3);border-top:1px solid var(--line);border-bottom:1px solid var(--line);cursor:ns-resize;display:flex;align-items:center;justify-content:center;user-select:none;transition:background .12s;}
+#resize-handle:hover{background:var(--bg4);}
+#resize-handle::after{content:'';width:36px;height:3px;background:var(--muted);border-radius:2px;opacity:.5;transition:opacity .12s;}
+#resize-handle:hover::after{opacity:1;}
+
 /* Tablet (481-768px): journal visible, no mobile chrome */
 @media (max-width: 768px) {
   #pill-bar{height:auto;min-height:36px;padding:4px 8px;flex-wrap:wrap;overflow:visible;}
@@ -645,6 +651,9 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#faf6f0;color:#5
         <div id="rlist"></div>
       </div>
     </div>
+
+    <!-- RESIZE HANDLE -->
+    <div id="resize-handle" title="Drag to resize"></div>
 
     <!-- JOURNAL -->
     <div id="journal">
@@ -1742,52 +1751,57 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     }
   };
 
-  // ── NEIGHBOURHOOD OVERLAYS ───────────────────────────────────────────
-  const NHBR_LABELS_KR = [
-    {lat:37.5700,lng:126.9782,label:"Jongno",r:750},
-    {lat:37.5631,lng:126.9858,label:"Myeongdong",r:400},
-    {lat:37.5563,lng:126.9236,label:"Hongdae",r:720},
-    {lat:37.5614,lng:126.9279,label:"Yeonam",r:380},
-    {lat:37.5448,lng:127.0557,label:"Seongsu",r:600},
-    {lat:37.5318,lng:127.0038,label:"Hannam",r:560},
-    {lat:37.4979,lng:127.0276,label:"Gangnam",r:960},
-    {lat:37.5276,lng:127.0286,label:"Apgujeong",r:460},
-    {lat:37.5663,lng:126.9905,label:"Euljiro",r:440},
-    {lat:37.5550,lng:126.9374,label:"Sinchon",r:450},
-    {lat:37.5748,lng:126.9769,label:"Gwanghwamun",r:480},
-    {lat:37.5668,lng:127.0085,label:"Dongdaemun",r:560},
-    {lat:37.5603,lng:126.9963,label:"Chungmuro",r:360},
-    {lat:37.5787,lng:126.9846,label:"Insadong",r:360},
-    {lat:37.5368,lng:126.9920,label:"Itaewon",r:480},
-  ];
+  // ── NEIGHBOURHOOD BOUNDARIES (Overpass API — real OSM polygons) ────────
+  const GU_LABELS = {
+    '종로구':'Jongno','중구':'Myeongdong / Jung-gu','용산구':'Yongsan / Itaewon',
+    '성동구':'Seongsu','광진구':'Gwangjin','동대문구':'Dongdaemun',
+    '중랑구':'Jungnang','성북구':'Seongbuk','강북구':'Gangbuk',
+    '도봉구':'Dobong','노원구':'Nowon','은평구':'Eunpyeong',
+    '서대문구':'Sinchon / Seodaemun','마포구':'Hongdae / Mapo',
+    '양천구':'Yangcheon','강서구':'Gangseo','구로구':'Guro',
+    '금천구':'Geumcheon','영등포구':'Yeouido','동작구':'Dongjak',
+    '관악구':'Gwanak','서초구':'Seocho','강남구':'Gangnam',
+    '송파구':'Jamsil / Songpa','강동구':'Gangdong'
+  };
   let nhbrLayers = [];
-  function buildNeighbourhoodLabels() {
+
+  async function buildNeighbourhoodLabels() {
     nhbrLayers.forEach(l => map.removeLayer(l));
     nhbrLayers = [];
     if (currentCountry !== 'kr') return;
-    NHBR_LABELS_KR.forEach(nb => {
-      // Area boundary — light dashed circle like Google Maps / Condos.ca
-      const circle = L.circle([nb.lat, nb.lng], {
-        radius: nb.r,
-        color: '#9a8c7a',
-        fillColor: '#c4b49a',
-        fillOpacity: 0.05,
-        weight: 1.5,
-        opacity: 0.45,
-        dashArray: '6 5',
-        interactive: false,
-      }).addTo(map);
-      nhbrLayers.push(circle);
-      // Floating text label — no background, just text with white glow
-      const lbl = L.marker([nb.lat, nb.lng], {
-        icon: L.divIcon({
-          html: '<div class="nhbr-txt">' + nb.label + '</div>',
-          className: '', iconAnchor: [0, 8]
-        }),
-        interactive: false, zIndexOffset: -100
-      }).addTo(map);
-      nhbrLayers.push(lbl);
-    });
+    try {
+      const q = '[out:json][timeout:25];area["name"="서울특별시"]->.s;relation["boundary"="administrative"](area.s);out geom;';
+      const res = await fetch('https://overpass-api.de/api/interpreter', {
+        method: 'POST',
+        headers: {'Content-Type':'application/x-www-form-urlencoded'},
+        body: 'data=' + encodeURIComponent(q)
+      });
+      const data = await res.json();
+      data.elements.forEach(el => {
+        if (el.type !== 'relation') return;
+        const name = el.tags?.name || '';
+        if (!name.endsWith('구')) return;
+        const label = GU_LABELS[name] || el.tags?.['name:en'] || name;
+        const outers = (el.members || []).filter(m => m.role === 'outer' && m.geometry?.length > 0);
+        if (!outers.length) return;
+        try {
+          const ring = outers.flatMap(m => m.geometry.map(pt => [pt.lat, pt.lon]));
+          const poly = L.polygon([ring], {
+            color: '#8a7c6a', fillColor: '#b0a488', fillOpacity: 0.07,
+            weight: 2, opacity: 0.65, interactive: false
+          }).addTo(map);
+          nhbrLayers.push(poly);
+          const center = poly.getBounds().getCenter();
+          const lbl = L.marker(center, {
+            icon: L.divIcon({html:'<div class="nhbr-txt">'+label+'</div>',className:'',iconAnchor:[0,8]}),
+            interactive: false, zIndexOffset: -100
+          }).addTo(map);
+          nhbrLayers.push(lbl);
+        } catch(e) { /* skip malformed geometry */ }
+      });
+    } catch(e) {
+      console.warn('Could not fetch neighbourhood boundaries:', e);
+    }
   }
 
   // ── MONUMENT MARKERS ────────────────────────────────────────────────────
@@ -1980,6 +1994,42 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   }
 
   loadCommunityRecs();
+
+  // ── RESIZABLE MAP / JOURNAL SPLIT ─────────────────────────────────────
+  (function() {
+    const handle = document.getElementById('resize-handle');
+    const mw = document.getElementById('mapwrap');
+    if (!handle || !mw) return;
+    let dragging = false, startY = 0, startH = 0;
+
+    function startDrag(y) {
+      dragging = true; startY = y; startH = mw.offsetHeight;
+      document.body.style.cursor = 'ns-resize';
+      document.body.style.userSelect = 'none';
+    }
+    function doDrag(y) {
+      if (!dragging) return;
+      const topH = document.getElementById('hdr').offsetHeight + document.getElementById('pill-bar').offsetHeight;
+      const newH = Math.max(80, Math.min(startH + (y - startY), window.innerHeight - topH - 80));
+      mw.style.height = newH + 'px';
+      map.invalidateSize();
+    }
+    function endDrag() {
+      if (!dragging) return;
+      dragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      map.invalidateSize();
+    }
+
+    handle.addEventListener('mousedown', e => { e.preventDefault(); startDrag(e.clientY); });
+    document.addEventListener('mousemove', e => doDrag(e.clientY));
+    document.addEventListener('mouseup', endDrag);
+    handle.addEventListener('touchstart', e => startDrag(e.touches[0].clientY), {passive:true});
+    document.addEventListener('touchmove', e => { if (dragging) { e.preventDefault(); doDrag(e.touches[0].clientY); } }, {passive:false});
+    document.addEventListener('touchend', endDrag);
+  })();
+
 })();
 
 // ── MOBILE ───────────────────────────────────────────────────────────────
