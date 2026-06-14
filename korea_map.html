@@ -6,7 +6,7 @@
 <title>Waypoints</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Barlow+Condensed:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@1,400;1,700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400;1,600&family=Barlow+Condensed:wght@400;500;600;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -32,8 +32,8 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
   --purp:  #8a7abb;
   --pink:  #b87a9a;
   --r:3px;
-  --jhdr:  #0a0907;
-  --jhdr2: #0f0c09;
+  --jhdr:  #DDBCB4;
+  --jhdr2: #CFA8A0;
   --disp:  "Cormorant Garamond", Georgia, serif;
   --ui:    "Barlow Condensed", sans-serif;
 }
@@ -41,8 +41,8 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 
 /* ── LAYOUT ── */
 #app{display:flex;flex-direction:column;width:100vw;height:100vh;overflow:hidden;}
-#hdr{height:44px;min-height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--jhdr);border-bottom:1px solid var(--line);flex-shrink:0;}
-#pill-bar{height:38px;min-height:38px;display:flex;align-items:center;gap:0;padding:0 12px;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;overflow:hidden;}
+#hdr{height:52px;min-height:52px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 18px;background:var(--jhdr);border-bottom:1px solid rgba(58,12,24,.18);flex-shrink:0;gap:12px;}
+#pill-bar{height:38px;min-height:38px;display:flex;align-items:center;gap:0;padding:0 12px;background:#CFA8A0;border-bottom:1px solid rgba(58,12,24,.18);flex-shrink:0;overflow:hidden;}
 #body{display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;}
 #sb{display:none;}
 #mapwrap{flex:none;height:42vh;min-height:180px;position:relative;overflow:hidden;}
@@ -52,9 +52,28 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 #journal::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px;}
 
 /* ── HEADER ── */
-.htitle{font-family:var(--ui);font-size:13px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--hi);display:flex;align-items:center;gap:14px;}
-.htitle em{font-style:normal;font-weight:400;letter-spacing:.06em;color:var(--muted);font-size:10px;}
-.hpill{font-family:var(--ui);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);background:var(--bg3);border:1px solid var(--line);padding:2px 8px;border-radius:2px;}
+#hwordmark{font-family:'Fraunces',Georgia,serif;font-style:italic;font-weight:700;font-size:28px;color:#3A0C18;text-align:center;white-space:nowrap;line-height:1;letter-spacing:-.01em;}
+#hleft{display:flex;align-items:center;gap:10px;}
+.hright{display:flex;align-items:center;gap:8px;justify-content:flex-end;}
+.hpill{font-family:var(--ui);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;padding:2px 9px;border-radius:20px;background:rgba(58,12,24,.1);color:#3A0C18;border:1px solid rgba(58,12,24,.22);}
+#suggest-btn{background:#3A0C18 !important;color:#DDBCB4 !important;border:none !important;}
+#suggest-btn:hover{background:#500A22 !important;}
+#theme-btn{background:transparent !important;border:1px solid rgba(58,12,24,.28) !important;color:rgba(58,12,24,.65) !important;}
+#theme-btn:hover{border-color:rgba(58,12,24,.55) !important;color:#3A0C18 !important;}
+#country-btn{color:#3A0C18 !important;border-color:rgba(58,12,24,.28) !important;}
+#country-btn:hover{border-color:rgba(58,12,24,.55) !important;color:#3A0C18 !important;}
+#country-btn .cv{color:rgba(58,12,24,.5) !important;}
+#hcount{color:rgba(58,12,24,.45);}
+/* Pill-bar tab overrides */
+#pill-bar .jpill{color:rgba(58,12,24,.5);}
+#pill-bar .jpill.on{color:#3A0C18;}
+#pill-bar .jpill:hover{color:rgba(58,12,24,.85);}
+#pill-bar .jpill::after{background:#3A0C18;}
+#pill-bar .pb-sep{background:rgba(58,12,24,.22);}
+#srch-wrap input{border-bottom-color:rgba(58,12,24,.28) !important;color:#3A0C18 !important;}
+#srch-wrap input::placeholder{color:rgba(58,12,24,.4) !important;}
+#srch-wrap input:focus{border-bottom-color:rgba(58,12,24,.6) !important;}
+.srch-icon{color:rgba(58,12,24,.4) !important;}
 
 /* ── COUNTRY SELECTOR ── */
 #country-sel{position:relative;}
@@ -90,16 +109,12 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
   #country-menu{min-width:130px;}
   .cm-item{padding:8px 12px;font-size:12px;}
 }
-.hpill{background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.18);font-family:"DM Mono",monospace;font-size:9px;padding:2px 8px;border-radius:20px;}
-.hright{display:flex;align-items:center;gap:8px;}
-#hcount{font-family:var(--ui);font-size:9px;letter-spacing:.08em;color:var(--muted);}
-#theme-btn{background:transparent;border:1px solid var(--line);border-radius:2px;padding:3px 10px;font-family:var(--ui);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .15s;}
-#theme-btn:hover{border-color:var(--muted);color:var(--hi);}
-#suggest-btn{background:var(--acc);border:none;border-radius:2px;padding:4px 14px;font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#fff;cursor:pointer;transition:all .15s;}
-#suggest-btn:hover{background:var(--acc2);}
+#theme-btn{border-radius:2px;padding:3px 10px;font-family:var(--ui);font-size:9px;font-weight:500;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+#suggest-btn{border-radius:2px;padding:4px 14px;font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:all .15s;}
+#hcount{font-family:var(--ui);font-size:9px;letter-spacing:.08em;}
 
 /* ── SUGGEST MODAL (left panel) ── */
-#modal-overlay{position:fixed;top:82px;left:0;bottom:0;width:390px;z-index:2000;display:none;pointer-events:none;}
+#modal-overlay{position:fixed;top:90px;left:0;bottom:0;width:390px;z-index:2000;display:none;pointer-events:none;}
 #modal-overlay.vis{display:block;}
 #modal{background:var(--bg2);border-right:1px solid var(--line);width:100%;height:100%;max-height:none;border-radius:0;overflow-y:auto;padding:20px 22px;pointer-events:all;box-shadow:6px 0 28px rgba(0,0,0,.35);}
 #modal::-webkit-scrollbar{width:4px;}
@@ -193,7 +208,7 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 
 @media (max-width: 768px){
   #suggest-btn{font-size:9px;padding:4px 9px;}
-  #modal-overlay{width:100%;top:82px;}
+  #modal-overlay{width:100%;top:90px;}
   #modal{width:100%;padding:16px;}
 }
 
@@ -318,7 +333,8 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 
   /* ── APP SHELL ── */
   #app { flex-direction: column; height: 100dvh; height: 100vh; }
-  #hdr { height: 44px; min-height: 44px; padding: 0 12px; }
+  #hdr { height: 52px; min-height: 52px; padding: 0 10px; gap: 6px; }
+  #hwordmark { font-size: 22px; }
   .htitle { font-size: 14px; gap: 7px; }
   .hpill { display: none; }
   #hcount { display: none; }
@@ -602,9 +618,7 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 
   <!-- HEADER -->
   <div id="hdr">
-    <div class="htitle">
-      Waypoints
-      <em>Field Notes</em>
+    <div id="hleft">
       <div id="country-sel">
         <button id="country-btn" onclick="toggleCountryMenu()">
           <span id="cflag">🇰🇷</span><span id="cname">Korea</span><span class="cv">▾</span>
@@ -618,6 +632,7 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
       </div>
       <span class="hpill" id="hpill">124 places</span>
     </div>
+    <div id="hwordmark">Waypoints</div>
     <div class="hright">
       <span id="hcount"></span>
       <button id="suggest-btn" onclick="openSuggestModal()">+ Suggest</button>
