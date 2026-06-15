@@ -64,7 +64,16 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 #country-btn:hover{border-color:rgba(58,12,24,.55) !important;color:#3A0C18 !important;}
 #country-btn .cv{color:rgba(58,12,24,.5) !important;}
 #hcount{color:rgba(58,12,24,.45);}
-#hdays-pill{display:inline-flex !important;}
+#hdays-pill{display:inline-flex !important;cursor:pointer;user-select:none;}
+#hdays-pill:hover{opacity:.75;}
+#days-popover{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--bg2);border:1px solid var(--line);border-radius:6px;padding:10px 12px;z-index:9999;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.4);}
+#days-popover.open{display:block;}
+#days-popover label{font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:6px;}
+#days-popover input{width:100%;background:var(--bg3);border:1px solid var(--line);border-radius:4px;color:var(--hi);font-family:var(--ui);font-size:13px;padding:5px 8px;box-sizing:border-box;}
+#days-popover .dp-btns{display:flex;gap:6px;margin-top:8px;}
+#days-popover .dp-btn{flex:1;font-family:var(--ui);font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:5px 0;border-radius:3px;border:1px solid var(--line);background:none;color:var(--muted);cursor:pointer;}
+#days-popover .dp-btn.save{background:var(--acc);border-color:var(--acc);color:#fff;}
+#days-popover .dp-auto{font-family:var(--ui);font-size:9px;color:var(--muted);text-align:center;margin-top:6px;cursor:pointer;text-decoration:underline;}
 /* Pill-bar tab overrides */
 #pill-bar .jpill{color:rgba(58,12,24,.5);}
 #pill-bar .jpill.on{color:#3A0C18;}
@@ -812,7 +821,18 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
         </div>
       </div>
       <span class="hpill" id="hpill">124 places</span>
-      <span class="hpill" id="hdays-pill"></span>
+      <span style="position:relative;display:inline-flex;">
+        <span class="hpill" id="hdays-pill" onclick="toggleDaysPopover(event)" title="Set trip duration"></span>
+        <div id="days-popover">
+          <label>Trip duration</label>
+          <input type="number" id="days-input" min="1" max="60" placeholder="e.g. 14" />
+          <div class="dp-btns">
+            <button class="dp-btn" onclick="closeDaysPopover()">Cancel</button>
+            <button class="dp-btn save" onclick="saveTripDays()">Save</button>
+          </div>
+          <div class="dp-auto" onclick="resetTripDays()">Reset to auto-detect</div>
+        </div>
+      </span>
     </div>
     <div id="hwordmark">Waypoints</div>
     <div class="hright">
@@ -2189,7 +2209,8 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
         numSet.add(parseInt(nums[0]));
       }
     });
-    const dayNums = [...numSet].sort(function(a,b){return a-b;});
+    const tripDays = getTripDays();
+    const dayNums = [...numSet].sort(function(a,b){return a-b;}).filter(function(n){ return !tripDays || n <= tripDays; });
     const allVis = places.filter(function(p) { return isVisited(p); }).length;
     const allPct = places.length ? Math.round(allVis / places.length * 100) : 0;
     const cur = window.panelDay;
@@ -2590,18 +2611,70 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   };
 
   // ── START ─────────────────────────────────────────────────────────────
-  function updateDaysCount() {
-    const el = document.getElementById('hdays-pill');
-    if (!el) return;
+  function autoDetectDays() {
     let max = 0;
     allPlaces().forEach(function(p) {
       if (!p.day) return;
       const nums = p.day.match(/\d+/g);
       if (nums) nums.forEach(function(n) { max = Math.max(max, parseInt(n)); });
     });
-    el.textContent = max ? max + ' days' : '';
-    el.style.display = max ? '' : 'none';
+    return max;
   }
+
+  function getTripDays() {
+    const stored = localStorage.getItem('wp_tripdays_' + currentCountry);
+    return stored ? parseInt(stored) : autoDetectDays();
+  }
+
+  function updateDaysCount() {
+    const el = document.getElementById('hdays-pill');
+    if (!el) return;
+    const n = getTripDays();
+    el.textContent = n ? n + ' days' : '';
+    el.style.display = n ? '' : 'none';
+  }
+
+  window.toggleDaysPopover = function(e) {
+    e.stopPropagation();
+    const pop = document.getElementById('days-popover');
+    const inp = document.getElementById('days-input');
+    const stored = localStorage.getItem('wp_tripdays_' + currentCountry);
+    inp.value = stored || autoDetectDays() || '';
+    pop.classList.toggle('open');
+    if (pop.classList.contains('open')) {
+      setTimeout(function(){ inp.focus(); inp.select(); }, 50);
+      document.addEventListener('click', closeDaysPopover, { once: true });
+    }
+  };
+
+  window.closeDaysPopover = function() {
+    document.getElementById('days-popover').classList.remove('open');
+  };
+
+  window.saveTripDays = function() {
+    const val = parseInt(document.getElementById('days-input').value);
+    if (val > 0) {
+      localStorage.setItem('wp_tripdays_' + currentCountry, val);
+      updateDaysCount();
+      renderItinerary();
+    }
+    closeDaysPopover();
+  };
+
+  window.resetTripDays = function() {
+    localStorage.removeItem('wp_tripdays_' + currentCountry);
+    updateDaysCount();
+    renderItinerary();
+    closeDaysPopover();
+  };
+
+  (function() {
+    var inp = document.getElementById('days-input');
+    if (inp) inp.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') window.saveTripDays();
+      if (e.key === 'Escape') window.closeDaysPopover();
+    });
+  })();
 
   window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_kr') || '[]'));
   document.querySelector('.cm-item[data-c="kr"]').classList.add('active');
