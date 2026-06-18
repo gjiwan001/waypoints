@@ -12,7 +12,7 @@ What it does:
   5. Saves updated geocache.json so re-runs skip geocoding
 """
 
-import csv, json, re, time, urllib.request, urllib.parse, os, sys
+import csv, json, re, time, urllib.request, urllib.parse, os, sys, hashlib, math
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 CSV_FILE  = os.path.join(BASE, 'korea_saved_places.csv')
@@ -95,22 +95,45 @@ def seed_from_html(cache):
     return added
 
 def geocode(name, city):
-    """Return (lat, lng) from Nominatim, or None on failure."""
-    query = f"{name}, {city}, South Korea" if city else f"{name}, South Korea"
-    url = 'https://nominatim.openstreetmap.org/search?' + urllib.parse.urlencode({
-        'q': query, 'format': 'json', 'limit': 1, 'countrycodes': 'kr',
-    })
-    req = urllib.request.Request(
-        url, headers={'User-Agent': 'waypoints-map-builder/1.0 (github.com/gjiwan001/waypoints)'}
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            results = json.loads(resp.read())
-            if results:
-                return float(results[0]['lat']), float(results[0]['lon'])
-    except Exception as e:
-        print(f"  ⚠ Nominatim error for '{name}': {e}", file=sys.stderr)
+    """Return (lat, lng) from Nominatim, or None on failure.
+    Tries: (1) full name + city, (2) Korean name in parentheses, (3) name only."""
+    queries = []
+    # Primary: full name with city
+    queries.append(f"{name}, {city}, South Korea" if city else f"{name}, South Korea")
+    # Extract Korean name from parentheses e.g. "Hongdae (홍대)" → try "홍대, Seoul"
+    kr_match = re.search(r'\(([^)]+)\)', name)
+    if kr_match:
+        kr_name = kr_match.group(1)
+        queries.append(f"{kr_name}, {city}, South Korea" if city else f"{kr_name}, South Korea")
+    # Strip parenthetical and try clean English name
+    clean = re.sub(r'\s*\([^)]*\)', '', name).strip()
+    if clean != name:
+        queries.append(f"{clean}, {city}, South Korea" if city else f"{clean}, South Korea")
+
+    for query in queries:
+        url = 'https://nominatim.openstreetmap.org/search?' + urllib.parse.urlencode({
+            'q': query, 'format': 'json', 'limit': 1, 'countrycodes': 'kr',
+        })
+        req = urllib.request.Request(
+            url, headers={'User-Agent': 'waypoints-map-builder/1.0 (github.com/gjiwan001/waypoints)'}
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                results = json.loads(resp.read())
+                if results:
+                    return float(results[0]['lat']), float(results[0]['lon'])
+        except Exception as e:
+            print(f"  ⚠ Nominatim error for '{query}': {e}", file=sys.stderr)
+        time.sleep(1.1)
     return None
+
+def jitter(name, base_lat, base_lng, radius=0.018):
+    """Spread default-coord entries around the base point so the map doesn't collapse them.
+    Uses the place name as a seed so the offset is deterministic across runs."""
+    seed = int(hashlib.md5(name.encode()).hexdigest(), 16)
+    angle = (seed % 3600) / 3600 * 2 * math.pi
+    dist  = (((seed >> 12) % 1000) / 1000) * radius
+    return round(base_lat + dist * math.sin(angle), 6), round(base_lng + dist * math.cos(angle), 6)
 
 def city_default(city):
     c = city.lower()
@@ -150,13 +173,51 @@ def fmt_entry(name, cat, lat, lng, area, desc, tags, day):
     return (
         f'  {{n:"{js_str(name)}",'
         f'c:"{js_str(map_cat(cat))}",'
-        f'lat:{lat:.4f},'
-        f'lng:{lng:.4f},'
+        f'lat:{lat:.6f},'
+        f'lng:{lng:.6f},'
         f'area:"{js_str(clean_area(area))}",'
         f'd:"{js_str(desc)}",'
         f'tags:[{tags_js}],'
         f'day:"{js_str(day)}"}}'
     )
+
+def resolve_collisions(entries_data):
+    """Guarantee every entry gets a unique map coordinate key (Math.round(lat*10000)).
+    Uses a golden-angle spiral to find the nearest free slot."""
+    used = set()
+
+    def key(lat, lng):
+        return (round(lat * 10000), round(lng * 10000))
+
+    result = []
+    for item in entries_data:
+        k = key(item['lat'], item['lng'])
+        if k not in used:
+            used.add(k)
+            result.append(item)
+        else:
+            # Spiral outward until a free key is found
+            seed = int(hashlib.md5(item['name'].encode()).hexdigest(), 16)
+            angle0 = math.radians((seed % 360))
+            step = 0.0002   # ~20 m per step
+            placed = False
+            for i in range(1, 200):
+                angle = angle0 + i * 2.39996   # golden angle ≈ 137.5°
+                dist  = step * i
+                nlat = round(item['lat'] + dist * math.sin(angle), 6)
+                nlng = round(item['lng'] + dist * math.cos(angle), 6)
+                nk = key(nlat, nlng)
+                if nk not in used:
+                    item = dict(item)
+                    item['lat'], item['lng'] = nlat, nlng
+                    used.add(nk)
+                    result.append(item)
+                    placed = True
+                    break
+            if not placed:
+                result.append(item)   # shouldn't happen
+
+    return result
 
 
 # ── main ─────────────────────────────────────────────────────────────────────
@@ -212,30 +273,39 @@ def main():
         city = info['city']
         print(f"Geocoding: {name!r} ({city}) …", end=' ', flush=True)
 
-        coords = geocode(name, city) or geocode(name, '')
+        coords = geocode(name, city)
         if coords:
             cache[name] = {'lat': coords[0], 'lng': coords[1]}
             geocoded += 1
             print(f"→ {coords[0]:.4f}, {coords[1]:.4f}")
         else:
-            default = city_default(city)
-            cache[name] = {'lat': default[0], 'lng': default[1]}
-            print(f"→ default ({city})")
-        time.sleep(1.1)   # Nominatim: max 1 req/s
+            base = city_default(city)
+            jlat, jlng = jitter(name, base[0], base[1])
+            cache[name] = {'lat': jlat, 'lng': jlng, 'approx': True}
+            print(f"→ approx near {city or 'Seoul'}")
 
     if geocoded:
         save_cache(cache)
         print(f"Geocoded {geocoded} new places; cache updated")
 
-    # 4. Build JS entries
-    entries = []
+    # 4. Build entries list (dicts), resolve coordinate collisions, then format JS
+    entries_data = []
     for name, info in places.items():
         c = cache.get(name, {'lat': SEOUL_DEFAULT[0], 'lng': SEOUL_DEFAULT[1]})
         desc = info['descs'][0] if info['descs'] else ''
         days = sorted(info['days'])
         day  = days[0] if len(days) == 1 else (', '.join(days) if days else 'Flexible')
         tags = make_tags(name, info['cat'], desc)
-        entries.append(fmt_entry(name, info['cat'], c['lat'], c['lng'], info['city'], desc, tags, day))
+        entries_data.append({
+            'name': name, 'cat': info['cat'],
+            'lat': c['lat'], 'lng': c['lng'],
+            'city': info['city'], 'desc': desc, 'tags': tags, 'day': day,
+        })
+
+    entries_data = resolve_collisions(entries_data)
+    collisions_fixed = sum(1 for e in entries_data if e.get('_jittered'))
+    entries = [fmt_entry(e['name'], e['cat'], e['lat'], e['lng'], e['city'], e['desc'], e['tags'], e['day'])
+               for e in entries_data]
 
     # 5. Replace P_KR block in HTML
     new_block = 'const P_KR=[\n' + ',\n'.join(entries) + '\n];'
