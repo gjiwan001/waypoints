@@ -1,0 +1,39 @@
+name: Rebuild Korea Map
+
+# Runs whenever the CSV or build script changes, and daily at midnight UTC.
+# Geocodes new places, updates P_KR in the HTML, commits the result.
+
+on:
+  push:
+    paths:
+      - 'korea_saved_places.csv'
+      - 'build.py'
+  schedule:
+    - cron: '0 0 * * *'   # daily at midnight UTC
+  workflow_dispatch:       # manual trigger from the Actions tab
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run build script
+        run: python build.py
+
+      - name: Commit and push if anything changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add korea_map.html geocache.json
+          git diff --staged --quiet && echo "Nothing to commit" || \
+            git commit -m "auto: rebuild map from CSV [skip ci]" && git push
