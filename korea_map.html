@@ -2328,6 +2328,13 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     if (dayTab === 'Flexible') return d === 'Flexible';
     const tabNum = parseInt(dayTab.replace('Day ', ''));
     if (!tabNum) return false;
+    // Comma-separated = discrete days from build.py (e.g. "Day 3, Day 7")
+    if (d.includes(',')) {
+      return d.split(',').some(function(part) {
+        return parseInt(part.trim().replace('Day ', '')) === tabNum;
+      });
+    }
+    // Hyphen range or single day (e.g. "Day 3-5", "Day 3")
     const nums = d.match(/\d+/g);
     if (!nums) return false;
     if (nums.length >= 2) {
@@ -2346,6 +2353,15 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
       const d = p.day || 'Flexible';
       if (d === 'Evenings') { hasEvenings = true; return; }
       if (d === 'Flexible') { hasFlexible = true; return; }
+      // Comma-separated = discrete days (e.g. "Day 3, Day 7")
+      if (d.includes(',')) {
+        d.split(',').forEach(function(part) {
+          var n = parseInt(part.trim().replace('Day ', ''));
+          if (n) numSet.add(n);
+        });
+        return;
+      }
+      // Hyphen range or single day (e.g. "Day 3-5", "Day 3")
       const nums = d.match(/\d+/g);
       if (!nums) return;
       if (nums.length >= 2) {
@@ -3006,7 +3022,7 @@ setTimeout(function() {
     var shown = 0;
     ap.forEach(function(p, i) {
       if (window._activeFilters && !window._activeFilters.has(p.c)) return;
-      if (dayF && p.day !== dayF) return;
+      if (dayF && !placeMatchesDay(p, dayF)) return;
       if (areaF && p.area !== areaF) return;
       if (q && !p.n.toLowerCase().includes(q) && !p.area.toLowerCase().includes(q)
               && !p.d.toLowerCase().includes(q) && !p.tags.some(function(t){return t.includes(q);})) return;

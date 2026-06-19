@@ -81,9 +81,9 @@ def geocode_naver(name, city, client_id, client_secret):
         if items:
             mapx = float(items[0]['mapx'])
             mapy = float(items[0]['mapy'])
-            # Naver returns WGS84 * 1e7 — normalise if needed
-            if mapy > 90:   mapy /= 1e7
-            if mapx > 180:  mapx /= 1e7
+            # Naver may return WGS84 * 1e7 — use abs() to handle negative coords too
+            if abs(mapy) > 90:   mapy /= 1e7
+            if abs(mapx) > 180:  mapx /= 1e7
             return mapy, mapx   # (lat, lng)
     except Exception as e:
         print(f"  ⚠ Naver error for '{name}': {e}", file=sys.stderr)
@@ -114,6 +114,7 @@ def geocode_nominatim(name, city, country_name):
         try:
             results = _fetch(url, {'User-Agent': 'waypoints-map-builder/1.0 (github.com/gjiwan001/waypoints)'})
             if results:
+                time.sleep(1.1)  # respect 1 req/s policy before returning
                 return float(results[0]['lat']), float(results[0]['lon'])
         except Exception as e:
             print(f"  ⚠ Nominatim error for '{query}': {e}", file=sys.stderr)
@@ -142,17 +143,22 @@ def save_cache(cache):
         json.dump(cache, f, indent=2, ensure_ascii=False)
 
 def seed_from_html(cache):
-    """Seed cache from any hand-placed coords already in the HTML."""
+    """Seed cache from any hand-placed coords already in the HTML.
+
+    Marked approx so a real geocoder can improve them on the next run.
+    Regex handles negative coords (southern hemisphere / west of prime meridian).
+    """
     with open(HTML_FILE, encoding='utf-8') as f:
         content = f.read()
     added = 0
-    for m in re.finditer(r'\{n:"([^"]+)"[^}]*lat:([\d.]+),lng:([\d.]+)', content):
+    for m in re.finditer(r'\{n:"([^"]+)"[^}]*lat:(-?[\d.]+),lng:(-?[\d.]+)', content):
         name = m.group(1)
         lat, lng = float(m.group(2)), float(m.group(3))
         if name not in cache:
-            # Skip if it's sitting at the Seoul default
+            # Skip Seoul default — it's a placeholder, not a real coord
             if not (abs(lat - 37.5665) < 0.0002 and abs(lng - 126.978) < 0.0002):
-                cache[name] = {'lat': lat, 'lng': lng, 'source': 'html'}
+                # Mark approx so a real geocoder can improve it next run
+                cache[name] = {'lat': lat, 'lng': lng, 'source': 'html', 'approx': True}
                 added += 1
     return added
 
@@ -179,10 +185,14 @@ def make_tags(name, cat, desc):
     if '★' in name or 'top pick' in d or 'best' in d[:60]: tags.append('★ top pick')
     if 'free' in d: tags.append('free')
     if 'english' in d: tags.append('english friendly')
-    return list(dict.fromkeys(tags))
+    return tags
 
 def js_str(s):
-    return s.replace('\\', '\\\\').replace('"', '\\"').replace('\n', ' ').replace('\r', '')
+    return (s.replace('\\', '\\\\')
+             .replace('"', '\\"')
+             .replace('\n', ' ')
+             .replace('\r', '')
+             .replace('</', '<\\/'))  # prevent </script> from breaking the HTML block
 
 def fmt_entry(e):
     tags_js = ', '.join(f'"{js_str(t)}"' for t in e['tags'])
@@ -196,6 +206,11 @@ def fmt_entry(e):
         f'tags:[{tags_js}],'
         f'day:"{js_str(e["day"])}"}}'
     )
+
+def _day_sort_key(d):
+    """Sort day strings numerically (e.g. 'Day 10' before 'Day 2' would be wrong)."""
+    m = re.search(r'\d+', d)
+    return (int(m.group()) if m else 999, d)
 
 def resolve_collisions(entries):
     """Golden-angle spiral: guarantee every entry has a unique map coord key."""
@@ -211,6 +226,7 @@ def resolve_collisions(entries):
             seed = int(hashlib.md5(item['name'].encode()).hexdigest(), 16)
             angle0 = math.radians(seed % 360)
             step = 0.0002
+            resolved = False
             for i in range(1, 500):
                 angle = angle0 + i * 2.39996
                 dist  = step * i
@@ -221,7 +237,10 @@ def resolve_collisions(entries):
                     item = dict(item)
                     item['lat'], item['lng'] = nlat, nlng
                     used.add(nk)
+                    resolved = True
                     break
+            if not resolved:
+                print(f"WARNING: coord collision unresolved for {item['name']!r}", file=sys.stderr)
         result.append(item)
     return result
 
@@ -246,8 +265,9 @@ def main():
         save_cache(cache)
 
     # 2. Read + deduplicate CSV by Place Name
+    # utf-8-sig strips the Excel BOM (﻿) if present
     places = {}   # name → {country, cat, city, descs[], days{}}
-    with open(CSV_FILE, newline='', encoding='utf-8') as f:
+    with open(CSV_FILE, newline='', encoding='utf-8-sig') as f:
         for row in csv.DictReader(f):
             name    = row.get('Place Name', '').strip()
             country = row.get('Country', '').strip()
@@ -286,12 +306,8 @@ def main():
         country = info['country']
         city    = info['city']
 
-        # Re-try approx entries when a better geocoder is now available
-        should_retry = (
-            cached is None or
-            (cached.get('approx') and use_naver and country == 'Korea') or
-            (cached.get('approx') and cached.get('source') == 'nominatim' and use_naver and country == 'Korea')
-        )
+        # Retry any approx entry — geocoders may succeed now (Naver added, transient failure, etc.)
+        should_retry = cached is None or cached.get('approx')
         if not should_retry:
             continue
 
@@ -339,8 +355,15 @@ def main():
             continue
         c    = cache.get(name, {'lat': 37.5665, 'lng': 126.9780})
         desc = info['descs'][0] if info['descs'] else ''
-        days = sorted(info['days'])
-        day  = days[0] if len(days) == 1 else (', '.join(days) if days else 'Flexible')
+        # Sort day values numerically so "Day 10" comes after "Day 9", not before "Day 2"
+        days = sorted(info['days'], key=_day_sort_key)
+        if not days:
+            day = 'Flexible'
+        elif len(days) == 1:
+            day = days[0]
+        else:
+            # Comma-separated discrete days — JS placeMatchesDay handles this format
+            day = ', '.join(days)
         entries_data.append({
             'name': name, 'country': info['country'], 'cat': info['cat'],
             'lat': c['lat'], 'lng': c['lng'],
@@ -348,19 +371,26 @@ def main():
             'tags': make_tags(name, info['cat'], desc), 'day': day,
         })
 
+    if not entries_data:
+        print("WARNING: no Korea entries found in CSV — P_KR will be empty", file=sys.stderr)
+
     entries_data = resolve_collisions(entries_data)
     entries = [fmt_entry(e) for e in entries_data]
 
-    # 5. Replace P_KR block in HTML
+    # 5. Replace P_KR block in HTML (atomic write via temp file)
     new_block = 'const P_KR=[\n' + ',\n'.join(entries) + '\n];'
     with open(HTML_FILE, encoding='utf-8') as f:
         html = f.read()
-    html_new, n = re.subn(r'const P_KR=\[[\s\S]*?\n\];', new_block, html)
+    # Use a lambda so re doesn't interpret backslashes in new_block as group references
+    html_new, n = re.subn(r'const P_KR=\[[\s\S]*?\n\];', lambda _: new_block, html)
     if n == 0:
         print("ERROR: 'const P_KR=[...];' block not found in HTML", file=sys.stderr)
         sys.exit(1)
-    with open(HTML_FILE, 'w', encoding='utf-8') as f:
+    # Write atomically — avoids a corrupt HTML if the process is killed mid-write
+    tmp = HTML_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as f:
         f.write(html_new)
+    os.replace(tmp, HTML_FILE)
 
     print(f"✓ Wrote {len(entries)} Korea places to P_KR in {os.path.basename(HTML_FILE)}")
 
