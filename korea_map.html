@@ -2804,6 +2804,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     if (val > 0) {
       localStorage.setItem('wp_tripdays_' + currentCountry, val);
       updateDaysCount();
+      buildPanelDayTabs();
       renderItinerary();
     }
     closeDaysPopover();
@@ -2812,6 +2813,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   window.resetTripDays = function() {
     localStorage.removeItem('wp_tripdays_' + currentCountry);
     updateDaysCount();
+    buildPanelDayTabs();
     renderItinerary();
     closeDaysPopover();
   };
