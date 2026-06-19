@@ -13,12 +13,14 @@ Cache: geocache.json stores {lat, lng, source} per place name. Entries marked
 "approx" are re-tried on the next run when a better geocoder is available.
 """
 
-import csv, json, re, time, urllib.request, urllib.parse, os, sys, hashlib, math
+import csv, json, re, time, urllib.request, urllib.parse, os, sys, hashlib, math, datetime
 
-BASE       = os.path.dirname(os.path.abspath(__file__))
-CSV_FILE   = os.path.join(BASE, 'korea_saved_places.csv')
-HTML_FILE  = os.path.join(BASE, 'korea_map.html')
-CACHE_FILE = os.path.join(BASE, 'geocache.json')
+BASE            = os.path.dirname(os.path.abspath(__file__))
+CSV_FILE        = os.path.join(BASE, 'korea_saved_places.csv')
+HTML_FILE       = os.path.join(BASE, 'korea_map.html')
+CACHE_FILE      = os.path.join(BASE, 'geocache.json')
+LAST_BUILD_FILE = os.path.join(BASE, 'last_build.json')
+REMOVED_FILE    = os.path.join(BASE, 'removed_places.json')
 
 # Country-level fallback coordinates
 COUNTRY_DEFAULTS = {
@@ -142,6 +144,27 @@ def save_cache(cache):
     with open(CACHE_FILE, 'w', encoding='utf-8') as f:
         json.dump(cache, f, indent=2, ensure_ascii=False)
 
+def load_last_build():
+    if os.path.exists(LAST_BUILD_FILE):
+        with open(LAST_BUILD_FILE, encoding='utf-8') as f:
+            return json.load(f)
+    return {}
+
+def save_last_build(data):
+    with open(LAST_BUILD_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+def load_removed():
+    if os.path.exists(REMOVED_FILE):
+        with open(REMOVED_FILE, encoding='utf-8') as f:
+            return json.load(f)
+    return []
+
+def save_removed(data):
+    with open(REMOVED_FILE, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=2, ensure_ascii=False)
+
+
 def seed_from_html(cache):
     """Seed cache from any hand-placed coords already in the HTML.
 
@@ -205,6 +228,20 @@ def fmt_entry(e):
         f'd:"{js_str(e["desc"])}",'
         f'tags:[{tags_js}],'
         f'day:"{js_str(e["day"])}"}}'
+    )
+
+def fmt_removed_entry(e):
+    tags_js = ', '.join(f'"{js_str(t)}"' for t in e.get('tags', []))
+    return (
+        f'  {{n:"{js_str(e["name"])}",'
+        f'c:"{js_str(map_cat(e["cat"]))}",'
+        f'lat:{e["lat"]:.6f},'
+        f'lng:{e["lng"]:.6f},'
+        f'area:"{js_str(clean_area(e["city"]))}",'
+        f'd:"{js_str(e.get("desc",""))}",'
+        f'tags:[{tags_js}],'
+        f'day:"{js_str(e.get("day","Flexible"))}",'
+        f'removedAt:"{js_str(e.get("removedAt",""))}"}}'
     )
 
 def _day_sort_key(d):
@@ -347,7 +384,7 @@ def main():
         save_cache(cache)
         print(f"Geocoded {geocoded} places ({approx} still approx); cache updated")
 
-    # 4. Build entries, resolve collisions, format JS
+    # 4. Build Korea entries list from geocoded places
     # Only include places whose country maps to P_KR (Korea for now)
     entries_data = []
     for name, info in places.items():
@@ -374,18 +411,57 @@ def main():
     if not entries_data:
         print("WARNING: no Korea entries found in CSV — P_KR will be empty", file=sys.stderr)
 
+    # 5. Detect removed places (compare against last build)
+    today = datetime.date.today().isoformat()
+    last_build  = load_last_build()
+    old_entries = {e['name']: e for e in last_build.get('Korea', [])}
+    new_names   = {e['name'] for e in entries_data}
+
+    newly_removed = [old_entries[n] for n in old_entries if n not in new_names]
+
+    archive          = load_removed()
+    archived_names   = {e['name'] for e in archive}
+    # Drop anything that came back in the new CSV
+    archive = [e for e in archive if e['name'] not in new_names]
+    # Add newly removed places
+    for e in newly_removed:
+        if e['name'] not in archived_names:
+            e_copy = dict(e)
+            e_copy['removedAt'] = today
+            archive.append(e_copy)
+            print(f"  ⚠ Removed from CSV: {e['name']!r}")
+
+    save_removed(archive)
+    if archive:
+        print(f"Removed places archive: {len(archive)} total")
+
+    # Save current Korea entries as the new last_build snapshot
+    save_last_build({'Korea': entries_data})
+
+    # 6. Resolve collisions and format JS
     entries_data = resolve_collisions(entries_data)
     entries = [fmt_entry(e) for e in entries_data]
 
-    # 5. Replace P_KR block in HTML (atomic write via temp file)
-    new_block = 'const P_KR=[\n' + ',\n'.join(entries) + '\n];'
+    # 7. Replace P_KR and P_REMOVED blocks in HTML (atomic write via temp file)
+    new_pkr_block = 'const P_KR=[\n' + ',\n'.join(entries) + '\n];'
+    if archive:
+        new_removed_block = 'const P_REMOVED=[\n' + ',\n'.join(fmt_removed_entry(e) for e in archive) + '\n];'
+    else:
+        new_removed_block = 'const P_REMOVED=[];'
+
     with open(HTML_FILE, encoding='utf-8') as f:
         html = f.read()
-    # Use a lambda so re doesn't interpret backslashes in new_block as group references
-    html_new, n = re.subn(r'const P_KR=\[[\s\S]*?\n\];', lambda _: new_block, html)
+
+    # Use lambdas so re doesn't interpret backslashes in replacement strings as group refs
+    html_new, n = re.subn(r'const P_KR=\[[\s\S]*?\n\];', lambda _: new_pkr_block, html)
     if n == 0:
         print("ERROR: 'const P_KR=[...];' block not found in HTML", file=sys.stderr)
         sys.exit(1)
+
+    html_new, n2 = re.subn(r'const P_REMOVED=\[[\s\S]*?\];', lambda _: new_removed_block, html_new)
+    if n2 == 0:
+        print("WARNING: 'const P_REMOVED=[...];' block not found in HTML — removed-places UI won't update", file=sys.stderr)
+
     # Write atomically — avoids a corrupt HTML if the process is killed mid-write
     tmp = HTML_FILE + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
@@ -393,6 +469,8 @@ def main():
     os.replace(tmp, HTML_FILE)
 
     print(f"✓ Wrote {len(entries)} Korea places to P_KR in {os.path.basename(HTML_FILE)}")
+    if archive:
+        print(f"✓ Wrote {len(archive)} removed places to P_REMOVED")
 
 
 if __name__ == '__main__':
