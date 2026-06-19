@@ -363,6 +363,10 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 .pt-name{flex:1;font-family:var(--disp);font-size:13px;font-style:italic;color:var(--hi);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pt-cat{font-family:var(--ui);font-size:9px;color:var(--muted);flex-shrink:0;letter-spacing:.04em;}
 .pt-day{font-family:var(--ui);font-size:8px;color:var(--gold);flex-shrink:0;padding:1px 6px;border-radius:20px;background:rgba(196,162,74,.1);border:1px solid rgba(196,162,74,.2);}
+.pt-day-pick{font-family:var(--ui);font-size:8px;color:var(--gold);flex-shrink:0;padding:1px 4px 1px 6px;border-radius:20px;background:rgba(196,162,74,.1);border:1px solid rgba(196,162,74,.2);cursor:pointer;outline:none;max-width:90px;appearance:none;-webkit-appearance:none;}
+.pt-day-pick.overridden{background:rgba(196,162,74,.28);border-color:var(--gold);}
+.tp-day-pick{font-family:var(--ui);font-size:9px;color:var(--gold);padding:2px 6px;border-radius:20px;background:rgba(196,162,74,.1);border:1px solid rgba(196,162,74,.2);cursor:pointer;outline:none;margin-top:4px;appearance:none;-webkit-appearance:none;}
+.tp-day-pick.overridden{background:rgba(196,162,74,.28);border-color:var(--gold);}
 .pt-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);background:none;color:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;font-family:var(--ui);line-height:1;}
 .pt-check:hover{border-color:var(--green);color:var(--green);}
 .pt-row.pt-visited .pt-check{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent);}
@@ -1872,7 +1876,8 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     document.getElementById('idesc').textContent = p.d;
     document.getElementById('itags').innerHTML = p.tags.map(t => '<span class="itag">' + esc(t) + '</span>').join('');
     const dayEl = document.getElementById('iday');
-    if (p.day) { dayEl.textContent = '📅 ' + p.day; dayEl.style.display = 'block'; }
+    const effDay = getEffectiveDay(p);
+    if (effDay && effDay !== 'Flexible') { dayEl.textContent = '📅 ' + effDay; dayEl.style.display = 'block'; }
     else { dayEl.style.display = 'none'; }
     const igHandle = p.d.match(/@([a-zA-Z0-9_.]{1,30})/)?.[1];
     const igEl = document.getElementById('iig');
@@ -2294,13 +2299,13 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   window.panelTod = 'all';
 
   function isNightPlace(p) {
-    return p.day === 'Evenings' ||
+    return getEffectiveDay(p) === 'Evenings' ||
       (p.tags && (p.tags.includes('night') || p.tags.includes('evening')));
   }
 
   function passesTodFilter(p) {
     if (window.panelTod === 'night') return isNightPlace(p);
-    return p.day !== 'Evenings';
+    return getEffectiveDay(p) !== 'Evenings';
   }
 
   window.setPanelTod = function(tod) {
@@ -2321,9 +2326,51 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
   function visitedKeyFor(p) { return p.n + '||' + (p.area || ''); }
   function isVisited(p) { return window.visitedSet ? window.visitedSet.has(visitedKeyFor(p)) : false; }
 
+  // ── DAY OVERRIDES (user-assigned days, stored in localStorage) ────────────
+  function getDayOverrides() {
+    try { return JSON.parse(localStorage.getItem('wp_dayov_' + currentCountry) || '{}'); } catch(e) { return {}; }
+  }
+  function getEffectiveDay(p) {
+    const ov = getDayOverrides()[visitedKeyFor(p)];
+    return ov || p.day || 'Flexible';
+  }
+  window.setDayOverride = function(gi, val, e) {
+    if (e) e.stopPropagation();
+    const p = allPlaces()[gi];
+    if (!p) return;
+    const key = visitedKeyFor(p);
+    const overrides = getDayOverrides();
+    if (!val || val === '__orig__') {
+      delete overrides[key];
+    } else {
+      overrides[key] = val;
+    }
+    try { localStorage.setItem('wp_dayov_' + currentCountry, JSON.stringify(overrides)); } catch(err) {}
+    buildMarkers(); renderItinerary();
+  };
+  function dayPickerHtml(gi, p, cls) {
+    cls = cls || 'pt-day-pick';
+    const effDay = getEffectiveDay(p);
+    const hasOv = !!getDayOverrides()[visitedKeyFor(p)];
+    const n = getTripDays() || 14;
+    const stdDays = [];
+    for (var i = 1; i <= n; i++) stdDays.push('Day ' + i);
+    stdDays.push('Evenings', 'Flexible');
+    let opts = '';
+    // If current CSV value isn't in standard list, show it as the initial label
+    if (!stdDays.includes(effDay)) {
+      opts += '<option value="" selected>' + esc(effDay) + '</option>';
+    }
+    stdDays.forEach(function(v) {
+      opts += '<option value="' + v + '"' + (effDay === v ? ' selected' : '') + '>' + v + '</option>';
+    });
+    if (hasOv) opts += '<option value="__orig__">↩ Reset (CSV: ' + esc(p.day || 'Flexible') + ')</option>';
+    return '<select class="' + cls + (hasOv ? ' overridden' : '') + '" title="Assign to day" onclick="event.stopPropagation()" onchange="setDayOverride(' + gi + ',this.value,event)">' + opts + '</select>';
+  }
+
   function placeMatchesDay(p, dayTab) {
     if (dayTab === 'all') return true;
-    const d = p.day || 'Flexible';
+    const d = getEffectiveDay(p);
     if (dayTab === 'Evenings') return d === 'Evenings';
     if (dayTab === 'Flexible') return d === 'Flexible';
     const tabNum = parseInt(dayTab.replace('Day ', ''));
@@ -2350,7 +2397,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const numSet = new Set();
     var hasEvenings = false, hasFlexible = false;
     places.forEach(function(p) {
-      const d = p.day || 'Flexible';
+      const d = getEffectiveDay(p);
       if (d === 'Evenings') { hasEvenings = true; return; }
       if (d === 'Flexible') { hasFlexible = true; return; }
       // Comma-separated = discrete days (e.g. "Day 3, Day 7")
@@ -2388,7 +2435,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
         '<div class="pdt-prog"><div class="pdt-prog-fill" style="width:' + pct + '%"></div></div></button>';
     });
     if (hasFlexible) {
-      const dp = places.filter(function(p){ return p.day === 'Flexible' || !p.day; });
+      const dp = places.filter(function(p){ return getEffectiveDay(p) === 'Flexible'; });
       const vis = dp.filter(function(p){ return isVisited(p); }).length;
       const pct = dp.length ? Math.round(vis / dp.length * 100) : 0;
       html += '<button class="pdt' + (cur === 'Flexible' ? ' on' : '') + '" onclick="setPanelDay(\'Flexible\')">' +
@@ -2458,7 +2505,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
             '<div class="pt-dot" style="background:' + cfg.color + '"></div>' +
             '<span class="pt-name">' + esc(p.n) + '</span>' +
             '<span class="pt-cat">' + esc(p.c) + '</span>' +
-            (p.day && window.panelDay === 'all' ? '<span class="pt-day">' + esc(p.day) + '</span>' : '') +
+            dayPickerHtml(gi, p, 'pt-day-pick') +
             '<button class="pt-check" onclick="toggleVisited(' + gi + ',event)">' + (vis ? '✓' : '') + '</button>' +
             '</div>';
         }).join('');
@@ -2485,6 +2532,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
           '<div class="tp-info">' +
             '<div class="tp-name">' + esc(p.n) + '</div>' +
             '<div class="tp-meta">' + esc(p.c) + ' · ' + esc(p.area || '') + '</div>' +
+            dayPickerHtml(gi, p, 'tp-day-pick') +
             (!done ? '<div class="tp-acts"><a class="tp-act" href="' + esc(naverHref) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Naver Maps ↗</a></div>' : '') +
           '</div></div>';
       }).join('');
@@ -2508,7 +2556,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
     const byDay = {};
     places.forEach(function(p) {
-      const d = p.day || 'Flexible';
+      const d = getEffectiveDay(p);
       if (!byDay[d]) byDay[d] = [];
       byDay[d].push(p);
     });
@@ -2625,11 +2673,11 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const places = allPlaces().filter(function(p) { return activeFilters.has(p.c); });
     const dayVals = [];
     const seen = {};
-    DAY_ORDER_SHARED.forEach(function(d) { if (!seen[d]) { seen[d] = true; if (places.some(function(p) { return (p.day||'Flexible') === d; })) dayVals.push(d); } });
-    places.forEach(function(p) { const d = p.day||'Flexible'; if (!seen[d]) { seen[d] = true; dayVals.push(d); } });
+    DAY_ORDER_SHARED.forEach(function(d) { if (!seen[d]) { seen[d] = true; if (places.some(function(p) { return getEffectiveDay(p) === d; })) dayVals.push(d); } });
+    places.forEach(function(p) { const d = getEffectiveDay(p); if (!seen[d]) { seen[d] = true; dayVals.push(d); } });
     if (!dayVals.length) { el.innerHTML = '<div class="dv-empty">No places to show.</div>'; return; }
     const selDay = window.todayRunDay && dayVals.includes(window.todayRunDay) ? window.todayRunDay : dayVals[0];
-    const dayPlaces = places.filter(function(p) { return (p.day || 'Flexible') === selDay; });
+    const dayPlaces = places.filter(function(p) { return getEffectiveDay(p) === selDay; });
     const CAT_PRI = ['Transport','Accommodation','Neighbourhood','Culture','Shopping','Skincare','Food','DayTrip'];
     dayPlaces.sort(function(a, b) {
       const ia = CAT_PRI.indexOf(a.c), ib = CAT_PRI.indexOf(b.c);
@@ -2686,7 +2734,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     });
     const maxCat = Math.max.apply(null, Object.values(catCounts).concat([1]));
     const dayCounts = {};
-    places.forEach(function(p) { const d = p.day || 'Flexible'; dayCounts[d] = (dayCounts[d] || 0) + 1; });
+    places.forEach(function(p) { const d = getEffectiveDay(p); dayCounts[d] = (dayCounts[d] || 0) + 1; });
     const maxDay = Math.max.apply(null, Object.values(dayCounts).concat([1]));
     const daysPlanned = Object.keys(dayCounts).filter(function(d) { return d !== 'Flexible'; }).length;
     const community = places.filter(function(p) { return p.isCommunity; }).length;
