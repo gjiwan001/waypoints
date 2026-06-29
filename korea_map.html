@@ -370,11 +370,17 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
 .pt-check{width:20px;height:20px;border-radius:50%;border:1.5px solid var(--line);background:none;color:transparent;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s;font-family:var(--ui);line-height:1;}
 .pt-check:hover{border-color:var(--green);color:var(--green);}
 .pt-row.pt-visited .pt-check{color:var(--green);border-color:color-mix(in srgb,var(--green) 40%,transparent);}
-.pt-star{width:20px;height:20px;border:none;background:none;color:var(--bg4);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:color .15s;line-height:1;padding:0;}
-.pt-star:hover{color:var(--gold);}
-.pt-star.on{color:var(--gold);}
-.tp-star{font-size:13px;background:none;border:none;cursor:pointer;color:var(--bg4);transition:color .15s;padding:0;line-height:1;}
-.tp-star:hover,.tp-star.on{color:var(--gold);}
+.pt-mg-btn{font-family:var(--ui);font-size:7px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:20px;background:none;padding:1px 6px;cursor:pointer;flex-shrink:0;transition:all .15s;white-space:nowrap;line-height:1.4;}
+.pt-mg-btn:hover{border-color:rgba(196,162,74,.6);color:var(--gold);}
+.pt-mg-btn.on{color:var(--gold);border-color:var(--gold);background:rgba(196,162,74,.12);}
+.tp-mg-btn{font-family:var(--ui);font-size:7px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);border:1px solid var(--line);border-radius:20px;background:none;padding:1px 6px;cursor:pointer;transition:all .15s;white-space:nowrap;line-height:1.4;vertical-align:middle;margin-left:4px;}
+.tp-mg-btn:hover{border-color:rgba(196,162,74,.6);color:var(--gold);}
+.tp-mg-btn.on{color:var(--gold);border-color:var(--gold);background:rgba(196,162,74,.12);}
+.mg-remove-btn{font-family:var(--ui);font-size:7px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);border:1px solid rgba(196,162,74,.35);border-radius:20px;background:rgba(196,162,74,.08);padding:1px 7px;cursor:pointer;flex-shrink:0;white-space:nowrap;line-height:1.4;transition:all .12s;}
+.mg-remove-btn:hover{background:rgba(196,162,74,.2);border-color:var(--gold);}
+/* Must Go pill in the top pill bar */
+#mg-filter-pill{color:rgba(58,12,24,.5) !important;}
+#mg-filter-pill.on{color:#3A0C18 !important;}
 /* ── MUST GO panel ── */
 .mg-hdr{font-family:var(--ui);font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);padding:8px 14px 6px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:5;}
 .mg-count{color:var(--muted);font-weight:400;}
@@ -1007,7 +1013,7 @@ body{font-family:"DM Sans",sans-serif;font-size:13px;background:#0a0907;color:#c
       <div id="pd-mode">
         <button class="pdmb on" onclick="setPanelViewMode('browse')">Browse</button>
         <button class="pdmb" onclick="setPanelViewMode('trip')">Trip</button>
-        <button class="pdmb" id="mg-tab-btn" onclick="setPanelViewMode('mustgo')">★ Must Go</button>
+        <button class="pdmb" id="mg-tab-btn" onclick="setPanelViewMode('mustgo')">Must Go</button>
       </div>
     </div>
 
@@ -1882,6 +1888,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     let n = 0;
     allPlaces().forEach((p, i) => {
       if (!activeFilters.has(p.c)) return;
+      if (window.mustGoFilter && !isMustGo(p)) return;
       if (activeDayFilter && !placeMatchesDay(p, activeDayFilter)) return;
       const coordKey = Math.round(p.lat * 10000) + ',' + Math.round(p.lng * 10000);
       if (renderedCoords.has(coordKey)) return;
@@ -2179,6 +2186,9 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     ZONES = COUNTRIES[code].ZONES;
     try { window.visitedSet = new Set(JSON.parse(localStorage.getItem('wp_visited_' + code) || '[]')); } catch(e) { window.visitedSet = new Set(); }
     try { window.mustGoSet  = new Set(JSON.parse(localStorage.getItem('wp_mustgo_'  + code) || '[]')); } catch(e) { window.mustGoSet = new Set(); }
+    window.mustGoFilter = false;
+    const mgPill = document.getElementById('mg-filter-pill');
+    if (mgPill) mgPill.classList.remove('on');
     updateMustGoTab();
     window.todayRunDay = null;
 
@@ -2419,10 +2429,25 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
 
   function updateMustGoTab() {
     const btn = document.getElementById('mg-tab-btn');
-    if (!btn) return;
-    const n = window.mustGoSet ? window.mustGoSet.size : 0;
-    btn.textContent = n > 0 ? '★ Must Go (' + n + ')' : '★ Must Go';
+    if (btn) {
+      const n = window.mustGoSet ? window.mustGoSet.size : 0;
+      btn.textContent = n > 0 ? 'Must Go (' + n + ')' : 'Must Go';
+    }
+    const pill = document.getElementById('mg-filter-pill');
+    if (pill) {
+      const n = window.mustGoSet ? window.mustGoSet.size : 0;
+      pill.textContent = n > 0 ? 'Must Go (' + n + ')' : 'Must Go';
+    }
   }
+
+  window.mustGoFilter = false;
+  window.toggleMustGoFilter = function() {
+    window.mustGoFilter = !window.mustGoFilter;
+    const pill = document.getElementById('mg-filter-pill');
+    if (pill) pill.classList.toggle('on', window.mustGoFilter);
+    buildMarkers();
+    renderItinerary();
+  };
 
   // ── DAY OVERRIDES (user-assigned days, stored in localStorage) ────────────
   function getDayOverrides() {
@@ -2641,6 +2666,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const q = ((document.getElementById('q') || {}).value || '').toLowerCase();
     const places = allPlaces().filter(function(p) {
       if (!activeFilters.has(p.c)) return false;
+      if (window.mustGoFilter && !isMustGo(p)) return false;
       if (q && !p.n.toLowerCase().includes(q) && !(p.area||'').toLowerCase().includes(q)
               && !(p.d||'').toLowerCase().includes(q)) return false;
       return true;
@@ -2659,7 +2685,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const all = allPlaces();
     const flagged = all.filter(p => isMustGo(p));
     if (!flagged.length) {
-      el.innerHTML = '<div class="mg-empty"><strong>No places flagged yet</strong>Tap ★ on any place in Browse or Trip mode<br>to add it to your Must Go list.</div>';
+      el.innerHTML = '<div class="mg-empty"><strong>No places flagged yet</strong>Tap "Must Go" on any place in Browse or Trip mode<br>to add it to your list.</div>';
       return;
     }
     function mgSortVal(p) {
@@ -2672,7 +2698,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
     const sorted = flagged.slice().sort((a, b) => mgSortVal(a) - mgSortVal(b));
     const visCount = sorted.filter(p => isVisited(p)).length;
     el.innerHTML =
-      '<div class="mg-hdr"><span>★ Must Go</span>' +
+      '<div class="mg-hdr"><span>Must Go</span>' +
       '<span class="mg-count">' + visCount + ' / ' + sorted.length + ' visited</span></div>' +
       sorted.map(function(p) {
         const gi = all.indexOf(p);
@@ -2684,7 +2710,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
           '<span class="mg-name">' + esc(p.n) + '</span>' +
           '<span class="mg-area">' + esc(p.area || '') + '</span>' +
           (effDay !== 'Flexible' ? '<span class="mg-day">' + esc(effDay) + '</span>' : '') +
-          '<button class="mg-unstar" onclick="toggleMustGo(' + gi + ',event)" title="Remove from Must Go">★</button>' +
+          '<button class="mg-remove-btn" onclick="toggleMustGo(' + gi + ',event)">Remove</button>' +
         '</div>';
       }).join('');
   }
@@ -2714,7 +2740,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
             '<span class="pt-name">' + esc(p.n) + '</span>' +
             '<span class="pt-cat">' + esc(p.c) + '</span>' +
             dayPickerHtml(gi, p, 'pt-day-pick') +
-            '<button class="pt-star' + (mg ? ' on' : '') + '" onclick="toggleMustGo(' + gi + ',event)" title="Flag as must go">★</button>' +
+            '<button class="pt-mg-btn' + (mg ? ' on' : '') + '" onclick="toggleMustGo(' + gi + ',event)" title="Flag as must go">Must Go</button>' +
             '<button class="pt-check" onclick="toggleVisited(' + gi + ',event)">' + (vis ? '✓' : '') + '</button>' +
             '</div>';
         }).join('');
@@ -2740,7 +2766,7 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
         return '<div class="tp-row' + (done ? ' tp-done' : '') + '" onclick="focusJCard(' + gi + ')">' +
           '<button class="tp-check" onclick="toggleVisited(' + gi + ',event)">' + (done ? '✓' : '') + '</button>' +
           '<div class="tp-info">' +
-            '<div class="tp-name">' + esc(p.n) + ' <button class="tp-star' + (mg2 ? ' on' : '') + '" onclick="toggleMustGo(' + gi + ',event)" title="Flag as must go">★</button></div>' +
+            '<div class="tp-name">' + esc(p.n) + ' <button class="tp-mg-btn' + (mg2 ? ' on' : '') + '" onclick="toggleMustGo(' + gi + ',event)" title="Flag as must go">Must Go</button></div>' +
             '<div class="tp-meta">' + esc(p.c) + ' · ' + esc(p.area || '') + '</div>' +
             dayPickerHtml(gi, p, 'tp-day-pick') +
             (!done ? '<div class="tp-acts"><a class="tp-act" href="' + esc(naverHref) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Naver Maps ↗</a></div>' : '') +
@@ -3138,6 +3164,13 @@ let ZONES = COUNTRIES[currentCountry].ZONES;
       buildMarkers(); renderList(); renderJournal();
     };
     pillBarEl.appendChild(allJPill);
+    const mgFilterPill = document.createElement('div');
+    mgFilterPill.id = 'mg-filter-pill';
+    mgFilterPill.className = 'jpill';
+    mgFilterPill.textContent = 'Must Go';
+    mgFilterPill.onclick = () => window.toggleMustGoFilter();
+    pillBarEl.appendChild(mgFilterPill);
+    updateMustGoTab();
     Object.keys(CC).forEach(cat => {
       const div = document.createElement('div');
       div.className = 'jpill on';
